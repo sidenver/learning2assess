@@ -1,0 +1,67 @@
+local hidden_size = 50;
+local embedding_size = 768;
+
+{
+   "train_data_path": "/fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/crowd/train/test_data_reader.jsonl",
+   "dataset_reader": {
+      "lazy": true,
+      "type": "user_bert_reader",
+      "overflow_doc_strategy": "latest",
+      "max_doc": 25,
+      "token_indexers": {
+          "bert": {
+              "type": 'bert-pretrained',
+              "pretrained_model": 'bert-base-uncased',
+              "do_lowercase": true,
+              "use_starting_offsets": true,
+              "max_pieces": 128,
+              "truncate_long_sequences": true
+          }
+      }
+   },
+   "iterator": {
+      "batch_size": 1,
+      "type": "basic",
+      "max_instances_in_memory": 1
+   },
+   "model": {
+       "type": "3HAN_bert",
+       "bert_model": 'bert-base-uncased',
+       "sentence_to_doc": {
+           "type": "attention_rnn",
+           "encoder":{
+               "type": "gru",
+               "input_size": embedding_size,
+               "hidden_size": hidden_size,
+               "bidirectional": true
+           },
+           "attention":{
+               "type": "dot_product"
+           }
+       },
+       "doc_to_user": {
+           "type": "attention_rnn",
+           "encoder":{
+               "type": "gru",
+               "input_size": hidden_size*2,
+               "hidden_size": hidden_size,
+               "bidirectional": true
+           },
+           "attention":{
+               "type": "dot_product"
+           }
+       }
+   },
+   "trainer": {
+        "num_epochs": 5,
+        "optimizer": {
+            "type": "adam",
+            "lr": 0.001
+        },
+        "validation_metric": "+accuracy",
+        "num_serialized_models_to_keep": 3,
+        "grad_norm": 10.0,
+        "patience": 5,
+        "cuda_device": 0
+    }
+}

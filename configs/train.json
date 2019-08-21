@@ -1,0 +1,57 @@
+{
+   "train_data_path": "/fs/clip-psych/shing/smoke-detect/learning2assess/reddit_suicide_watch.train",
+   "validation_data_path": "/fs/clip-psych/shing/smoke-detect/learning2assess/reddit_suicide_watch.dev",
+   "test_data_path": "/fs/clip-psych/shing/smoke-detect/learning2assess/reddit_suicide_watch.test",
+   "dataset_reader": {
+      "lazy": false,
+      "type": "user_reader",
+      "token_indexers": {
+        "tokens": {
+          "type": "single_id",
+          "lowercase_tokens": true
+        }
+      }
+   },
+   "iterator": {
+      "batch_size": 4,
+      "type": "bucket",
+      "sorting_keys": [["tokens", "list_list_num_tokens"]]
+   },
+   "model": {
+       "type": "3HAN",
+       "word_embeddings": {
+            "token_embedders": {
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": 200,
+                    "trainable": false,
+                    "pretrained_file": "(http://nlp.stanford.edu/data/glove.twitter.27B.zip)#glove.twitter.27B.200d.txt"
+                }
+            }
+       },
+       "word_to_sentence": {
+           "type": "gru",
+           "input_size": 200,
+           "hidden_size": 100
+       },
+       "sentence_to_doc": {
+           "type": "gru",
+           "input_size": 100,
+           "hidden_size": 100
+       },
+       "doc_to_user": {
+           "type": "gru",
+           "input_size": 100,
+           "hidden_size": 100
+       }
+   },
+   "trainer": {
+        "num_epochs": 5,
+        "optimizer": {
+            "type": "adam",
+            "lr": 0.003
+        },
+        "patience": 10,
+        "cuda_device": 0
+    }
+}
