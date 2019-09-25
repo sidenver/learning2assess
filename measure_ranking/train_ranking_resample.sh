@@ -44,7 +44,7 @@ do
     for loss in pairwise_logistic_loss pairwise_hinge_loss pairwise_soft_zero_one_loss softmax_loss sigmoid_cross_entropy_loss mean_squared_loss list_mle_loss approx_ndcg_loss approx_mrr_loss
     do
         echo $loss
-        python -u train_ranking_resample.py -l $loss -o $outdir -s $seed --train "${outdir}/train.svm" --test "${outdir}/test.svm"
+        python -u train_ranking_resample.py -l $loss -o $outdir -s $seed --train "${outdir}/train.svm" --test "${outdir}/dev.svm"
     done
 done
 
