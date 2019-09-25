@@ -35,20 +35,23 @@ def split_and_convert_to_libsvm_format(path, stratified_shuffle_split, outdir):
             X.append(user_embedding)
             Y.append(true_label)
 
+    X = np.array(X)
+    Y = np.array(Y)
+
     with open(out_path_train, 'w') as outputs_train, open(out_path_dev, 'w') as outputs_dev:
         for train_index, test_index in stratified_shuffle_split.split(X, Y):
             X_train, X_test = X[train_index], X[test_index]
             Y_train, Y_test = Y[train_index], Y[test_index]
             for _x, _y in zip(X_train, Y_train):
-                outputs_train.write('{} {} {}\n'.format(_y,
+                outputs_train.write('{} {} {}\n'.format(int(_y),
                                                         'qid:1',
-                                                        ' '.join(['{}:{}'.format(idx + 1, feature)
+                                                        ' '.join(['{}:{}'.format(idx + 1, float(feature))
                                                                   for idx, feature in enumerate(_x)])))
 
             for _x, _y in zip(X_test, Y_test):
-                outputs_dev.write('{} {} {}\n'.format(_y,
+                outputs_dev.write('{} {} {}\n'.format(int(_y),
                                                       'qid:1',
-                                                      ' '.join(['{}:{}'.format(idx + 1, feature)
+                                                      ' '.join(['{}:{}'.format(idx + 1, float(feature))
                                                                 for idx, feature in enumerate(_x)])))
 
     return out_path_train, out_path_dev
