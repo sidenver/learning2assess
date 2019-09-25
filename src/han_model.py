@@ -419,7 +419,13 @@ class HierarchicalAttentionRNN3CLPsychPre(Model):
         output['loss'] = self._loss(prediction, label)
         # output['accuracy'] =
 
-        self._accuracy(prediction, label)
+        output['user_embedding'] = users
+        output['prediction'] = prediction
+
+        if label is not None:
+            output['truth'] = label
+
+            self._accuracy(prediction, label)
 
         return output
 
