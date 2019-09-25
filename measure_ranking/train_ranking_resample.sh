@@ -21,7 +21,7 @@ echo -e "\nStarting on the $(hostname) server."
 
 cd /fs/clip-psych
 cd /fs/clip-scratch
-cd /fs/clip-psych/shing/learning2assess/ranking/
+cd /fs/clip-psych/shing/learning2assess/measure_ranking/
 
 # module load cuda/9.0.176
 # module load cudnn/7.0.64
