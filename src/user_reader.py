@@ -168,6 +168,62 @@ class UserCLPsychDatasetReader(DatasetReader):
                                             user["timestamp"], user["label"])
 
 
+@DatasetReader.register('user_clpsych_time_reader')
+class UserCLPsychTimeDatasetReader(UserCLPsychDatasetReader):
+    """
+    For pre-sentenized, pre-tokenized json-line SuicideWatch Dataset
+    """
+
+    def tokens_to_user_field(self, tokens) -> ListField:
+        doc_list = []
+        for doc in tokens[-self.max_doc:]:
+            sent_list = []
+            for sentence in doc[:self.max_sent]:
+                word_list = []
+                for word in sentence[:self.max_word]:
+                    word_list.append(Token(word))
+                sent_list.append(TextField(word_list, self.token_indexers))
+            doc_list.append(ListField(sent_list))
+        return ListField(doc_list)
+
+    def word_count(self, tokens: List[List[List[str]]]):
+        totol_word_count = 0
+        for doc in tokens:
+            for sentence in doc:
+                totol_word_count += len(sentence)
+
+        return totol_word_count
+
+    def text_to_instance(self, user_id: int, tokens: List[List[List[str]]],
+                         subreddit: List[str], timestamp: List[int],
+                         label: Optional[str] = None) -> Instance:
+        user_field = self.tokens_to_user_field(tokens)
+        fields = {"tokens": user_field}
+        tokens_word_count = self.word_count(tokens)
+        fields["word_count"] = MetadataField(tokens_word_count)
+
+        if label:
+            label_field = LabelField(label)
+            fields["label"] = label_field
+            raw_meta_field = MetadataField(label)
+            fields["raw_label"] = raw_meta_field
+
+        fields["meta"] = MetadataField({"user_id": user_id,
+                                        "subreddit": subreddit,
+                                        "timestamp": timestamp})
+
+        return Instance(fields)
+
+    def _read(self, file_path: str) -> Iterator[Instance]:
+        with open(file_path) as f:
+            for line in f:
+                user = json.loads(line.strip())
+
+                yield self.text_to_instance(user["user_id"],
+                                            user['tokens'], user["subreddit"],
+                                            user["timestamp"], user["label"])
+
+
 @DatasetReader.register('user_bert_reader')
 class UserBertDatasetReader(DatasetReader):
     """
