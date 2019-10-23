@@ -75,7 +75,7 @@ local model_archive_path = "/fs/clip-material/shing/pretrain_binary/model.tar.gz
        }
    },
    "trainer": {
-        "validation_metric": "+macro_fscore",
+        "validation_metric": "+ndcg_cut_20",
         "num_epochs": 100,
         "optimizer": {
             "type": "adam",
