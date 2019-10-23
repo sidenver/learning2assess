@@ -195,7 +195,7 @@ class StatefulTimeBiasedGain(Metric):
         if sum([gold for pre, gold, word_count in self.predictions_with_gold]) == 0:
             return {}
 
-        sorted_predictions_with_gold = sorted(self.predictions_with_gold, lambda x: x[0], reverse=True)
+        sorted_predictions_with_gold = sorted(self.predictions_with_gold, key=lambda x: x[0], reverse=True)
         gains = [self.p_click_true * self.p_save_true if gold > 0 else 0.
                  for pre, gold, word_count in sorted_predictions_with_gold]
 
