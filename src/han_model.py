@@ -419,9 +419,9 @@ class HierarchicalAttentionRNN3CLPsychTimed(HierarchicalAttentionRNN3CLPsych):
             output['truth'] = label
             # output['accuracy'] =
             a_index = self.vocab.get_token_index('a', namespace='labels')
-            b_index = self.vocab.get_token_index('a', namespace='labels')
-            c_index = self.vocab.get_token_index('a', namespace='labels')
-            d_index = self.vocab.get_token_index('a', namespace='labels')
+            b_index = self.vocab.get_token_index('b', namespace='labels')
+            c_index = self.vocab.get_token_index('c', namespace='labels')
+            d_index = self.vocab.get_token_index('d', namespace='labels')
 
             indexes_with_score = [(a_index, 0), (b_index, 1), (c_index, 2), (d_index, 3)]
 
