@@ -418,10 +418,21 @@ class HierarchicalAttentionRNN3CLPsychTimed(HierarchicalAttentionRNN3CLPsych):
         if label is not None:
             output['truth'] = label
             # output['accuracy'] =
-            positive_index = self.vocab.get_token_index('positive', namespace='labels')
-            self._ndcg(prediction[:, positive_index], raw_label)
+            a_index = self.vocab.get_token_index('a', namespace='labels')
+            b_index = self.vocab.get_token_index('a', namespace='labels')
+            c_index = self.vocab.get_token_index('a', namespace='labels')
+            d_index = self.vocab.get_token_index('a', namespace='labels')
 
-            self._time(prediction[:, positive_index], raw_label, word_count)
+            indexes_with_score = [(a_index, 0), (b_index, 1), (c_index, 2), (d_index, 3)]
+
+            normalized = nn.Softmax(dim=-1)
+
+            prediction_probability = normalized(prediction)
+            scores_for_ranking = sum([score * prediction_probability[:, index]
+                                      for index, score in indexes_with_score])
+
+            self._ndcg(scores_for_ranking, raw_label)
+            self._time(scores_for_ranking, raw_label, word_count)
 
             self._accuracy(prediction, label)
             self._f1(prediction, label)
