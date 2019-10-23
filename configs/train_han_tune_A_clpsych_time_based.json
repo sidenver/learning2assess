@@ -78,9 +78,8 @@ local model_archive_path = "/fs/clip-material/shing/pretrain_binary/model.tar.gz
         "validation_metric": "+macro_fscore",
         "num_epochs": 100,
         "optimizer": {
-            "type": "sgd",
-            "lr": 0.003,
-            "momentum": 0.9
+            "type": "adam",
+            "lr": 0.003
         },
         "patience": 50,
         "cuda_device": 0
