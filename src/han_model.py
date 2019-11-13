@@ -571,7 +571,7 @@ class HierarchicalAttentionRNN3CLPsychHierarchicalTimed(HierarchicalAttentionRNN
         f1_macro = {'macro_' + key: val
                     for key, val in self._f1_macro.get_metric(reset).items()}
         htbg_metrics = {htbg_type + '_' + key: val
-                        for htbg_type, htbg_metric in self.self._htbg_metrics.items()
+                        for htbg_type, htbg_metric in self._htbg_metrics.items()
                         for key, val in htbg_metric.get_metric(reset).items()}
 
         return {"accuracy": self._accuracy.get_metric(reset),
