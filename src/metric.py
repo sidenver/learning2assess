@@ -126,6 +126,7 @@ class ZeroScorer(Scorer):
     """
     mimic TBG
     """
+
     def __init__(self, converter: Converter):
         self.converter = converter
 
@@ -204,9 +205,9 @@ class StatefulNDCG(Metric):
 class StatefulTimeBiasedGain(Metric):
 
     def __init__(self, converter: Converter,
-                 p_click_true: float, p_click_false: float,
-                 p_save_true: float, p_save_false: float, t_summary: float,
-                 t_alpha: float, t_beta: float) -> None:
+                 p_click_true: float = 0.64, p_click_false: float = 0.39,
+                 p_save_true: float = 0.77, p_save_false: float = 0.27, t_summary: float = 4.4,
+                 t_alpha: float = 0.018, t_beta: float = 7.8) -> None:
         self.predictions_with_gold = []
         self.gold_labels = []
         self._converter = converter
@@ -291,21 +292,24 @@ class StatefulTimeBiasedGain(Metric):
 @Metric.register('stateful_hierarchical_time_biased_gain')
 class StatefulHierarchicalTimeBiasedGain(StatefulTimeBiasedGain):
 
-    def __init__(self, converter: Converter, scorer: Scorer,
-                 p_click_true: float, p_click_false: float,
-                 p_save_true: float, p_save_false: float, t_summary: float,
-                 t_alpha: float, t_beta: float) -> None:
+    def __init__(self, converter: Converter, scorer: Scorer, doc_ranking_mode: str = 'sort',
+                 p_click_true: float = 0.64, p_click_false: float = 0.39,
+                 p_save_true: float = 0.77, p_save_false: float = 0.27, t_summary: float = 4.4,
+                 t_alpha: float = 0.018, t_beta: float = 7.8) -> None:
         super().__init__(converter=converter,
                          p_click_true=p_click_true, p_click_false=p_click_false,
                          p_save_true=p_save_true, p_save_false=p_save_false,
                          t_summary=t_summary, t_alpha=t_alpha, t_beta=t_beta)
         self._support_scorer = scorer
+        assert doc_ranking_mode in ['sort', 'forward', 'backward']
+        self.doc_ranking_mode = doc_ranking_mode
 
     def __call__(self,
                  predictions: torch.Tensor,
                  gold_labels: List[str],
                  word_counts: List[List[int]],
                  supports: List[List[List[Any]]],
+                 document_attentions: torch.Tensor,
                  mask: Optional[torch.Tensor] = None) -> None:
         """
         Parameters
@@ -323,16 +327,28 @@ class StatefulHierarchicalTimeBiasedGain(StatefulTimeBiasedGain):
         # support is the probability for stopping at the post
         supports_list = [[self._support_scorer(support) for support in support_list]
                          for support_list in supports]
+        document_attentions_list = document_attentions.tolist()
         # word_count is a list of document word count, support here is a list of support probability
-        self.predictions_with_gold += [(pre, gold, word_count, support)
-                                       for pre, gold, word_count, support in zip(prediction_list, gold_label_list,
-                                                                                 word_counts, supports_list)
+        self.predictions_with_gold += [(pre, gold, word_count, support, document_attention)
+                                       for pre, gold, word_count, support, document_attention
+                                       in zip(prediction_list, gold_label_list,
+                                              word_counts, supports_list,
+                                              document_attentions_list)
                                        if gold is not None]
 
-    def calculate_expect_word_read(self, word_count: List[int], support: List[float]) -> float:
+    def calculate_expect_word_read(self,
+                                   word_count: List[int],
+                                   support: List[float],
+                                   document_attention: List[float]) -> float:
+        word_support_attention = list(zip(word_count, support, document_attention))
+        if self.doc_ranking_mode == 'sort':
+            word_support_attention = sorted(word_support_attention, key=lambda x: x[-1], reverse=True)
+        if self.doc_ranking_mode == 'backward':
+            word_support_attention = reversed(word_support_attention)
+
         cumulative_skipping_prob = 1
         expect_word_read = 0
-        for doc_word_count, stopping_prob in zip(word_count, support):
+        for doc_word_count, stopping_prob, attention in word_support_attention:
             expect_word_read += doc_word_count * cumulative_skipping_prob
             cumulative_skipping_prob *= (1 - stopping_prob)
         return expect_word_read
@@ -341,19 +357,20 @@ class StatefulHierarchicalTimeBiasedGain(StatefulTimeBiasedGain):
         if len(self.predictions_with_gold) == 0:
             return {}
 
-        if sum([gold for pre, gold, word_count, support in self.predictions_with_gold]) == 0:
+        if sum([gold for pre, gold, word_count, support, document_attention
+                in self.predictions_with_gold]) == 0:
             return {}
 
         sorted_predictions_with_gold = sorted(self.predictions_with_gold, key=lambda x: x[0], reverse=True)
         gains = [self.p_click_true * self.p_save_true if gold > 0 else 0.
-                 for pre, gold, word_count, support in sorted_predictions_with_gold]
+                 for pre, gold, word_count, support, document_attention in sorted_predictions_with_gold]
 
         time_at_k = []
         # time at k is the time needed to reach rank k, thus the time to reach rank 1 is always 0
         time_at_k.append(0.)
-        for pre, gold, word_count, support in sorted_predictions_with_gold[:-1]:
+        for pre, gold, word_count, support, document_attention in sorted_predictions_with_gold[:-1]:
             p_click = self.p_click_true if gold > 0 else self.p_click_false
-            expect_word_read = self.calculate_expect_word_read(word_count, support)
+            expect_word_read = self.calculate_expect_word_read(word_count, support, document_attention)
             time = time_at_k[-1] + self.t_summary + (self.t_alpha * expect_word_read + self.t_beta) * p_click
             time_at_k.append(time)
 

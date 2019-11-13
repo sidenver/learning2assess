@@ -46,7 +46,7 @@ class AttentionRNN(Seq2VecEncoder):
 
         higher_tensor = torch.bmm(attention_weights.unsqueeze(-2), encoded).squeeze(-2)
 
-        return higher_tensor
+        return higher_tensor, attention_weights
 
     def get_input_dim(self) -> int:
         """
@@ -120,15 +120,15 @@ class HierarchicalAttentionRNN3(Model):
         # print(embedded_at_word.shape)
         # print(word_mask_at_word.shape)
 
-        sentences = self._word_to_sentence(embedded_at_word, word_mask_at_word)
+        sentences, _ = self._word_to_sentence(embedded_at_word, word_mask_at_word)
         sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
         # print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
 
-        docs = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
+        docs, _ = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
         # print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
 
-        users = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
+        users, _ = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
         # print(users.shape)
 
         prediction = self._predictor(users)
@@ -196,15 +196,15 @@ class HierarchicalAttentionRNN3NDCG(HierarchicalAttentionRNN3):
         # print(embedded_at_word.shape)
         # print(word_mask_at_word.shape)
 
-        sentences = self._word_to_sentence(embedded_at_word, word_mask_at_word)
+        sentences, _ = self._word_to_sentence(embedded_at_word, word_mask_at_word)
         sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
         # print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
 
-        docs = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
+        docs, _ = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
         # print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
 
-        users = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
+        users, _ = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
         # print(users.shape)
 
         prediction = self._predictor(users)
@@ -298,15 +298,15 @@ class HierarchicalAttentionRNN3CLPsych(Model):
         # print(embedded_at_word.shape)
         # print(word_mask_at_word.shape)
 
-        sentences = self._word_to_sentence(embedded_at_word, word_mask_at_word)
+        sentences, _ = self._word_to_sentence(embedded_at_word, word_mask_at_word)
         sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
         # print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
 
-        docs = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
+        docs, _ = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
         # print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
 
-        users = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
+        users, _ = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
         # print(users.shape)
 
         prediction = self._predictor(users)
@@ -397,15 +397,15 @@ class HierarchicalAttentionRNN3CLPsychTimed(HierarchicalAttentionRNN3CLPsych):
         # print(embedded_at_word.shape)
         # print(word_mask_at_word.shape)
 
-        sentences = self._word_to_sentence(embedded_at_word, word_mask_at_word)
+        sentences, _ = self._word_to_sentence(embedded_at_word, word_mask_at_word)
         sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
         # print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
 
-        docs = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
+        docs, _ = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
         # print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
 
-        users = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
+        users, _ = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
         # print(users.shape)
 
         prediction = self._predictor(users)
@@ -516,15 +516,15 @@ class HierarchicalAttentionRNN3CLPsychHierarchicalTimed(HierarchicalAttentionRNN
         # print(embedded_at_word.shape)
         # print(word_mask_at_word.shape)
 
-        sentences = self._word_to_sentence(embedded_at_word, word_mask_at_word)
+        sentences, _ = self._word_to_sentence(embedded_at_word, word_mask_at_word)
         sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
         # print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
 
-        docs = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
+        docs, _ = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
         # print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
 
-        users = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
+        users, document_attentions = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
         # print(users.shape)
 
         prediction = self._predictor(users)
@@ -532,6 +532,7 @@ class HierarchicalAttentionRNN3CLPsychHierarchicalTimed(HierarchicalAttentionRNN
         output = {}
         output['loss'] = self._loss(prediction, label)
         output['user_embedding'] = users
+        output['document_attentions'] = document_attentions
         output['prediction'] = prediction
 
         if label is not None:
@@ -553,7 +554,8 @@ class HierarchicalAttentionRNN3CLPsychHierarchicalTimed(HierarchicalAttentionRNN
             self._ndcg(scores_for_ranking, raw_label)
             self._tbg_metric(scores_for_ranking, raw_label, [sum(word_counts) for word_counts in doc_word_counts])
             for htbg_metric in self._htbg_metrics:
-                self._htbg_metrics[htbg_metric](scores_for_ranking, raw_label, doc_word_counts, support)
+                self._htbg_metrics[htbg_metric](scores_for_ranking, raw_label,
+                                                doc_word_counts, support, document_attentions)
 
             self._accuracy(prediction, label)
             self._f1(prediction, label)
@@ -643,15 +645,15 @@ class HierarchicalAttentionRNN3CLPsychPre(Model):
         # print(embedded_at_word.shape)
         # print(word_mask_at_word.shape)
 
-        sentences = self._word_to_sentence(embedded_at_word, word_mask_at_word)
+        sentences, _ = self._word_to_sentence(embedded_at_word, word_mask_at_word)
         sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
         # print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
 
-        docs = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
+        docs, _ = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
         # print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
 
-        users = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
+        users, _ = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
         # print(users.shape)
 
         prediction = self._predictor_binary(users)
@@ -762,10 +764,10 @@ class HierarchicalAttentionRNN3Bert(Model):
         sentences = self.bert_word_to_sentence(input_ids, token_type_ids, word_mask, sentence_mask)
         sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
 
-        docs = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
+        docs, _ = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
 
-        users = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
+        users, _ = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
 
         prediction = self._predictor_binary(users)
 

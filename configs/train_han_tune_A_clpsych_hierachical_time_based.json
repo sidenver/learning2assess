@@ -33,17 +33,22 @@ local model_archive_path = "/fs/clip-material/shing/pretrain_binary/model.tar.gz
           "type": "stateful_time_biased_gain",
           "converter": {
             "type": "binary_convert"
-          },
-          "p_click_true": 0.64, 
-          "p_click_false": 0.39,
-          "p_save_true": 0.77, 
-          "p_save_false": 0.27, 
-          "t_summary": 4.4,
-          "t_alpha": 0.018, 
-          "t_beta": 7.8
+          }
        },
        "htbg_metrics": {
-          "max":{
+          "max_sort":{
+            "type": "stateful_hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "max_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            }
+          },
+          "max_f":{
             "type": "stateful_hierarchical_time_biased_gain",
             "converter": {
               "type": "binary_convert"
@@ -54,15 +59,34 @@ local model_archive_path = "/fs/clip-material/shing/pretrain_binary/model.tar.gz
                 "type": "exponential_convert"
               }
             },
-            "p_click_true": 0.64, 
-            "p_click_false": 0.39,
-            "p_save_true": 0.77, 
-            "p_save_false": 0.27, 
-            "t_summary": 4.4,
-            "t_alpha": 0.018, 
-            "t_beta": 7.8
+            "doc_ranking_mode": "forward"
           },
-          "mean":{
+          "max_b":{
+            "type": "stateful_hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "max_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "backward"
+          },
+          "mean_sort":{
+            "type": "stateful_hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "average_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            }
+          },
+          "mean_f":{
             "type": "stateful_hierarchical_time_biased_gain",
             "converter": {
               "type": "binary_convert"
@@ -73,13 +97,20 @@ local model_archive_path = "/fs/clip-material/shing/pretrain_binary/model.tar.gz
                 "type": "exponential_convert"
               }
             },
-            "p_click_true": 0.64, 
-            "p_click_false": 0.39,
-            "p_save_true": 0.77, 
-            "p_save_false": 0.27, 
-            "t_summary": 4.4,
-            "t_alpha": 0.018, 
-            "t_beta": 7.8
+            "doc_ranking_mode": "forward"
+          },
+          "mean_b":{
+            "type": "stateful_hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "average_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "backward"
           },
           "zero":{
             "type": "stateful_hierarchical_time_biased_gain",
@@ -92,13 +123,7 @@ local model_archive_path = "/fs/clip-material/shing/pretrain_binary/model.tar.gz
                 "type": "exponential_convert"
               }
             },
-            "p_click_true": 0.64, 
-            "p_click_false": 0.39,
-            "p_save_true": 0.77, 
-            "p_save_false": 0.27, 
-            "t_summary": 4.4,
-            "t_alpha": 0.018, 
-            "t_beta": 7.8
+            "doc_ranking_mode": "forward"
           },
        },
        "word_embeddings": {
