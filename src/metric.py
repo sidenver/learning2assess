@@ -3,7 +3,7 @@ from typing import Dict, Optional, List, Union, Any, Tuple
 import torch
 import pytrec_eval
 import numpy as np
-from hTBG import hTBG
+from .hTBG import hTBG
 
 from allennlp.common.registrable import Registrable
 
