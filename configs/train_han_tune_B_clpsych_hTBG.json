@@ -1,0 +1,260 @@
+local hidden_size = 50;
+local embedding_size = 200;
+local model_archive_path = "/fs/clip-material/shing/pretrain_binary/model.tar.gz";
+
+{
+   "train_data_path": std.extVar("TRAINING_PATH"),
+   "validation_data_path": std.extVar("VALIDATE_PATH"),
+   "test_data_path": "/fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/crowd/test/task_B_with_post.test",
+   "dataset_reader": {
+      "lazy": false,
+      "type": "user_clpsych_post_time_reader",
+      "token_indexers": {
+        "tokens": {
+          "type": "single_id",
+          "lowercase_tokens": true
+        }
+      }
+   },
+   "iterator": {
+      "batch_size": 16,
+      "type": "bucket",
+      "sorting_keys": [["tokens", "list_list_num_tokens"]]
+   },
+   "model": {
+       "type": "3HAN_clpsych_htbg_time_ndcg",
+       "ndcg_metric": {
+          "type": "stateful_ndcg",
+          "converter": {
+            "type": "reddit_convert_zero"
+          }
+       },
+       "tbg_metric": {
+          "type": "stateful_time_biased_gain",
+          "converter": {
+            "type": "binary_convert"
+          }
+       },
+       "htbg_metrics": {
+          "max_sort":{
+            "type": "stateful_hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "max_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            }
+          },
+          "max_f":{
+            "type": "stateful_hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "max_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "forward"
+          },
+          "max_b":{
+            "type": "stateful_hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "max_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "backward"
+          },
+          "e_max_sort":{
+            "type": "hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "max_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            }
+          },
+          "e_max_f":{
+            "type": "hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "max_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "forward"
+          },
+          "e_max_b":{
+            "type": "hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "max_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "backward"
+          },
+          "mean_sort":{
+            "type": "stateful_hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "average_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            }
+          },
+          "mean_f":{
+            "type": "stateful_hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "average_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "forward"
+          },
+          "mean_b":{
+            "type": "stateful_hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "average_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "backward"
+          },
+          "e_mean_sort":{
+            "type": "hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "average_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            }
+          },
+          "e_mean_f":{
+            "type": "hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "average_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "forward"
+          },
+          "e_mean_b":{
+            "type": "hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "average_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "backward"
+          },
+          "zero":{
+            "type": "stateful_hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "zero_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "forward"
+          },
+          "e_zero":{
+            "type": "hierarchical_time_biased_gain",
+            "converter": {
+              "type": "binary_convert"
+            },
+            "scorer": {
+              "type": "zero_score",
+              "converter": {
+                "type": "exponential_convert"
+              }
+            },
+            "doc_ranking_mode": "forward"
+          }
+       },
+       "word_embeddings": {
+           "token_embedders": {
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": embedding_size,
+                    "trainable": false,
+                    "pretrained_file": "(http://nlp.stanford.edu/data/glove.twitter.27B.zip)#glove.twitter.27B.200d.txt"
+                }
+            }
+       },
+       "word_to_sentence": {
+           "_pretrained": {
+                "archive_file": model_archive_path, 
+                "module_path": "_word_to_sentence",
+                "freeze": true
+            }
+       },
+       "sentence_to_doc": {
+           "_pretrained": {
+                "archive_file": model_archive_path, 
+                "module_path": "_sentence_to_doc",
+                "freeze": true
+            }
+       },
+       "doc_to_user": {
+           "_pretrained": {
+                "archive_file": model_archive_path, 
+                "module_path": "_doc_to_user",
+                "freeze": true
+            }
+       }
+   },
+   "trainer": {
+        "validation_metric": "-loss",
+        "num_epochs": 100,
+        "optimizer": {
+            "type": "adam",
+            "lr": 0.003
+        },
+        "patience": 50,
+        "cuda_device": 0
+    }
+}

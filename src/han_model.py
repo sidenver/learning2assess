@@ -555,7 +555,9 @@ class HierarchicalAttentionRNN3CLPsychHierarchicalTimed(HierarchicalAttentionRNN
             self._tbg_metric(scores_for_ranking, raw_label, [sum(word_counts) for word_counts in doc_word_counts])
             for htbg_metric in self._htbg_metrics:
                 self._htbg_metrics[htbg_metric](scores_for_ranking, raw_label,
-                                                doc_word_counts, support, document_attentions)
+                                                doc_word_counts, support,
+                                                document_attentions,
+                                                meta)
 
             self._accuracy(prediction, label)
             self._f1(prediction, label)

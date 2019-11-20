@@ -3,6 +3,7 @@ from typing import Dict, Optional, List, Union, Any, Tuple
 import torch
 import pytrec_eval
 import numpy as np
+from hTBG import hTBG
 
 from allennlp.common.registrable import Registrable
 
@@ -310,6 +311,7 @@ class StatefulHierarchicalTimeBiasedGain(StatefulTimeBiasedGain):
                  word_counts: List[List[int]],
                  supports: List[List[List[Any]]],
                  document_attentions: torch.Tensor,
+                 meta: List[Dict[str, Any]],
                  mask: Optional[torch.Tensor] = None) -> None:
         """
         Parameters
@@ -379,3 +381,120 @@ class StatefulHierarchicalTimeBiasedGain(StatefulTimeBiasedGain):
         return {'hTBG_{}'.format(str(int(t_half_life))):
                 self.calculate_time_biased_gain(gains, time_at_k, t_half_life)
                 for t_half_life in t_half_lives}
+
+
+@Metric.register('hierarchical_time_biased_gain')
+class HierarchicalTimeBiasedGain(StatefulTimeBiasedGain):
+
+    def __init__(self, converter: Converter, scorer: Scorer, doc_ranking_mode: str = 'sort',
+                 p_click_true: float = 0.64, p_click_false: float = 0.39,
+                 p_save_true: float = 0.77, p_save_false: float = 0.27, t_summary: float = 4.4,
+                 t_alpha: float = 0.018, t_beta: float = 7.8) -> None:
+        super().__init__(converter=converter,
+                         p_click_true=p_click_true, p_click_false=p_click_false,
+                         p_save_true=p_save_true, p_save_false=p_save_false,
+                         t_summary=t_summary, t_alpha=t_alpha, t_beta=t_beta)
+        self._support_scorer = scorer
+        assert doc_ranking_mode in ['sort', 'forward', 'backward']
+        self.doc_ranking_mode = doc_ranking_mode
+        self.relevance_dict = {}
+        self.prediction_dict = {}
+
+    def __call__(self,
+                 predictions: torch.Tensor,
+                 gold_labels: List[str],
+                 word_counts: List[List[int]],
+                 supports: List[List[List[Any]]],
+                 document_attentions: torch.Tensor,
+                 meta: List[Dict[str, Any]],
+                 mask: Optional[torch.Tensor] = None) -> None:
+        user_ids = [meta_dict['user_id'] for meta_dict in meta]
+        post_ids_list = [meta_dict['post_id'] for meta_dict in meta]
+        prediction_list = predictions.tolist()
+        gold_label_list = [self._converter(raw_label) for raw_label in gold_labels]
+        # support is the probability for stopping at the post
+        supports_list = [[self._support_scorer(support) for support in support_list]
+                         for support_list in supports]
+        document_attentions_list = document_attentions.tolist()
+
+        self.relevance_dict.update(self.build_relevance_dict(user_ids,
+                                                             post_ids_list,
+                                                             gold_label_list,
+                                                             supports_list,
+                                                             word_counts))
+
+        self.prediction_dict.update(self.build_prediction_dict(user_ids,
+                                                               post_ids_list,
+                                                               prediction_list,
+                                                               document_attentions_list))
+
+    def build_relevance_dict(self,
+                             user_ids: List[str],
+                             post_ids_list: List[List[str]],
+                             gold_label_list: List[int],
+                             supports_list: List[List[float]],
+                             word_counts_list: List[List[int]]):
+        return {
+            user_id: [gold_label,
+                      {post_id: [support, word_count]
+                       for post_id, support, word_count
+                       in zip(post_ids, supports, word_counts)}]
+            for user_id, gold_label, post_ids, supports, word_counts
+            in zip(user_ids, gold_label_list, post_ids_list, supports_list, word_counts_list)
+        }
+
+    def build_prediction_dict(self,
+                              user_ids: List[str],
+                              post_ids_list: List[List[str]],
+                              prediction_list: List[float],
+                              document_attentions_list: List[List[float]]):
+        return {
+            user_id: [prediction,
+                      {post_id: document_attention
+                       for post_id, document_attention
+                       in zip(post_ids, self.sort_from_ranking_mode(document_attentions))}]
+            for user_id, prediction, post_ids, document_attentions
+            in zip(user_ids, prediction_list, post_ids_list, document_attentions_list)
+        }
+
+    def sort_from_ranking_mode(self, document_attentions):
+        num_docs = len(document_attentions)
+        if self.doc_ranking_mode == 'forward':
+            return [num_docs - index for index, _ in enumerate(document_attentions)]
+        if self.doc_ranking_mode == 'backward':
+            return [index for index, _ in enumerate(document_attentions)]
+        return document_attentions
+
+    def reset(self) -> None:
+        self.relevance_dict = {}
+        self.prediction_dict = {}
+
+    def evaluate(self) -> Dict[str, float]:
+        if len(self.relevance_dict) == 0:
+            return {}
+
+        t_half_lives = [224., 1800.]
+
+        htbg = hTBG(relevance={"q_1": self.relevance_dict},
+                    prediction={"q_1": self.prediction_dict},
+                    p_click_true=self.p_click_true, p_click_false=self.p_click_false,
+                    p_save_true=self.p_save_true, p_save_false=self.p_save_false, t_summary=self.t_summary,
+                    t_alpha=self.t_alpha, t_beta=self.t_beta,
+                    t_half_lives=t_half_lives)
+
+        results = htbg.evaluate()["q_1"]
+
+        best_possible_results = htbg.evaluate_best()["q_1"]
+
+        outputs = {}
+        outputs.update({
+            'hTBG_{}'.format(str(int(t_half_life))): results[t_half_life]
+            for t_half_life in results
+        })
+
+        outputs.update({
+            'hTBG_{}_best'.format(str(int(t_half_life))): best_possible_results[t_half_life]
+            for t_half_life in best_possible_results
+        })
+
+        return outputs
