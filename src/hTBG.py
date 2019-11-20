@@ -270,7 +270,7 @@ class hTBG:
         gains = np.array(gains)
         time_at_k = np.array(time_at_k)
         discount = np.exp(-time_at_k * np.log(2) / t_half_life)
-        if verbose:
+        if self.verbose:
             print('gains', gains)
             print('time_at_k', time_at_k)
             print('discount', discount)
