@@ -4,6 +4,7 @@ import torch
 import pytrec_eval
 import numpy as np
 from .hTBG import hTBG
+import json
 
 from allennlp.common.registrable import Registrable
 
@@ -481,6 +482,11 @@ class HierarchicalTimeBiasedGain(StatefulTimeBiasedGain):
                     p_save_true=self.p_save_true, p_save_false=self.p_save_false, t_summary=self.t_summary,
                     t_alpha=self.t_alpha, t_beta=self.t_beta,
                     t_half_lives=t_half_lives)
+
+        print("relevance")
+        print(json.dumps(self.relevance_dict))
+        print("prediction")
+        print(json.dumps(self.prediction_dict))
 
         results = htbg.evaluate()["q_1"]
 
