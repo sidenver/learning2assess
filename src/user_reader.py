@@ -378,10 +378,18 @@ class PostCLPsychPostTimeDatasetReader(UserCLPsychDatasetReader):
                          label: Optional[str] = None) -> Instance:
         user_field = self.tokens_to_user_field(tokens)
         doc_word_count_list = self.doc_word_counts(tokens)
-        for doc_index, (post_field, doc_word_count) in enumerate(zip(user_field, doc_word_count_list)):
+        for doc_index, (post_field, doc_word_count, post_support,
+                        post_subreddit,
+                        post_post_id,
+                        post_timestamp) in enumerate(zip(user_field,
+                                                         doc_word_count_list,
+                                                         support[-self.max_doc:],
+                                                         subreddit[-self.max_doc:],
+                                                         post_id[-self.max_doc:],
+                                                         timestamp[-self.max_doc:])):
             fields = {"tokens": post_field}
             fields["doc_word_counts"] = MetadataField(doc_word_count)
-            fields["support"] = MetadataField(support[-self.max_doc + doc_index])
+            fields["support"] = MetadataField(post_support)
 
             if label:
                 label_field = LabelField(label)
@@ -390,9 +398,9 @@ class PostCLPsychPostTimeDatasetReader(UserCLPsychDatasetReader):
                 fields["raw_label"] = raw_meta_field
 
             fields["meta"] = MetadataField({"user_id": user_id,
-                                            "subreddit": subreddit[-self.max_doc + doc_index],
-                                            "post_id": post_id[-self.max_doc + doc_index],
-                                            "timestamp": timestamp[-self.max_doc + doc_index]})
+                                            "subreddit": post_subreddit,
+                                            "post_id": post_post_id,
+                                            "timestamp": post_timestamp})
 
             yield Instance(fields)
 
