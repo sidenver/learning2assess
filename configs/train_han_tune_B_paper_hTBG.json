@@ -205,5 +205,6 @@ local model_archive_path = "/fs/clip-material/shing/pretrain_binary/model.tar.gz
         },
         "patience": 10,
         "cuda_device": 0
-    }
+    },
+    "evaluate_on_test": true
 }
