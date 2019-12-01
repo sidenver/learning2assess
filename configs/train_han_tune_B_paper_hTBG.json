@@ -5,7 +5,7 @@ local model_archive_path = "/fs/clip-material/shing/pretrain_binary/model.tar.gz
 {
    "train_data_path": std.extVar("TRAINING_PATH"),
    "validation_data_path": std.extVar("VALIDATE_PATH"),
-   "test_data_path": "/fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/crowd/expert/task_B_with_post.expert",
+   "test_data_path": "/fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/expert/task_B_with_post.expert",
    "dataset_reader": {
       "lazy": false,
       "type": "user_clpsych_post_time_reader",
