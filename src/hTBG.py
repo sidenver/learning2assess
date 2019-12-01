@@ -342,26 +342,21 @@ class hTBG:
             cost_stopping_prob = {doc_id: (relevance_doc_dict[doc_id][1],  # lower level cost, or word count
                                            relevance_doc_dict[doc_id][0])  # stopping probability
                                   for doc_id in relevance_doc_dict}
-            cost_non_zero_stopping_doc_id = [doc_id
+            cost_non_zero_stopping_doc_id = set([doc_id
+                                                for doc_id, item in cost_stopping_prob.items()
+                                                if item[-1] > 0.])
+            cost_zero_stopping_doc_id = set([doc_id
                                              for doc_id, item in cost_stopping_prob.items()
-                                             if item[-1] > 0.]
-            cost_zero_stopping_doc_id = [doc_id
-                                         for doc_id, item in cost_stopping_prob.items()
-                                         if item[-1] == 0.]
+                                             if item[-1] == 0.])
 
-            # items with non zero stop prob will always rank before items with zero stop prob
-            # ranking within non zero stop prob is unsure, we therefore used a brute force algorithm for it
-            # TODO improve on this
-            for non_zero_doc_id in permutations(cost_non_zero_stopping_doc_id):
-                k = float(len(non_zero_doc_id))
-                prediction_score_dict = {doc_id: k - index for index, doc_id in enumerate(non_zero_doc_id)}
-                prediction_score_dict.update({doc_id: 0. for doc_id in cost_zero_stopping_doc_id})
-                expect_word_read = self.calculate_expect_word_read(relevance_doc_dict, prediction_score_dict)
-                if user in user_time:
-                    if user_time[user] > expect_word_read:
-                        user_time[user] = expect_word_read
-                else:
-                    user_time[user] = expect_word_read
+            all_prod_word = np.prod([cost_stopping_prob[doc_id][0] for doc_id in cost_stopping_prob])
+            prediction_score_dict = {doc_id: word_stopprob[1]*all_prod_word/word_stopprob[0]
+                                     for doc_id, word_stopprob in cost_stopping_prob.items()
+                                     if doc_id in cost_non_zero_stopping_doc_id}
+            prediction_score_dict.update({doc_id: -np.inf for doc_id in cost_zero_stopping_doc_id})
+            expect_word_read = self.calculate_expect_word_read(relevance_doc_dict, prediction_score_dict)
+
+            user_time[user] = expect_word_read
 
         # relevant items will always rank before irrelevant items
         # within relevant items, the shorter time ones rank higher

@@ -483,10 +483,10 @@ class HierarchicalTimeBiasedGain(StatefulTimeBiasedGain):
                     t_alpha=self.t_alpha, t_beta=self.t_beta,
                     t_half_lives=t_half_lives)
 
-        print("relevance")
-        print(json.dumps(self.relevance_dict))
-        print("prediction")
-        print(json.dumps(self.prediction_dict))
+        # print("relevance")
+        # print(json.dumps(self.relevance_dict))
+        # print("prediction")
+        # print(json.dumps(self.prediction_dict))
 
         results = htbg.evaluate()["q_1"]
 
