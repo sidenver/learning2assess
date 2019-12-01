@@ -87,6 +87,24 @@ class Scorer(Registrable):
     pass
 
 
+@Scorer.register('expect_score')
+class ExpectScorer(Scorer):
+    """
+    For hTBG, calculate probability with the max
+    """
+
+    def __init__(self, converter: Converter):
+        self.converter = converter
+        self.max = max(list(self.converter.mapping.values()))
+
+    def __call__(self, support: List[List[Any]]) -> float:
+        if len(support) == 0:
+            return 0.
+        score = 1 - np.prod([1 - ((self.converter(annotation) * confidence) / self.max)
+                            for annotation, confidence in support])
+        return score
+
+
 @Scorer.register('max_score')
 class MaxScorer(Scorer):
     """
@@ -390,12 +408,14 @@ class HierarchicalTimeBiasedGain(StatefulTimeBiasedGain):
     def __init__(self, converter: Converter, scorer: Scorer, doc_ranking_mode: str = 'sort',
                  p_click_true: float = 0.64, p_click_false: float = 0.39,
                  p_save_true: float = 0.77, p_save_false: float = 0.27, t_summary: float = 4.4,
-                 t_alpha: float = 0.018, t_beta: float = 7.8) -> None:
+                 t_alpha: float = 0.018, t_beta: float = 7.8,
+                 t_half_lives: List[float] = [224., 600., 1200., 1800.]) -> None:
         super().__init__(converter=converter,
                          p_click_true=p_click_true, p_click_false=p_click_false,
                          p_save_true=p_save_true, p_save_false=p_save_false,
                          t_summary=t_summary, t_alpha=t_alpha, t_beta=t_beta)
         self._support_scorer = scorer
+        self.t_half_lives = t_half_lives
         assert doc_ranking_mode in ['sort', 'forward', 'backward']
         self.doc_ranking_mode = doc_ranking_mode
         self.relevance_dict = {}
@@ -474,14 +494,12 @@ class HierarchicalTimeBiasedGain(StatefulTimeBiasedGain):
         if len(self.relevance_dict) == 0:
             return {}
 
-        t_half_lives = [224., 1800.]
-
         htbg = hTBG(relevance={"q_1": self.relevance_dict},
                     prediction={"q_1": self.prediction_dict},
                     p_click_true=self.p_click_true, p_click_false=self.p_click_false,
                     p_save_true=self.p_save_true, p_save_false=self.p_save_false, t_summary=self.t_summary,
                     t_alpha=self.t_alpha, t_beta=self.t_beta,
-                    t_half_lives=t_half_lives)
+                    t_half_lives=self.t_half_lives)
 
         # print("relevance")
         # print(json.dumps(self.relevance_dict))
