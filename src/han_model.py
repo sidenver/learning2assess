@@ -717,7 +717,7 @@ class HierarchicalAttentionRNN2CLPsychPre(Model):
             return reshaped_vec, reshaped_mask
         # print(tokens.shape)
         # print(tokens)
-        word_mask = get_text_field_mask(tokens, num_wrapping_dims=2)
+        word_mask = get_text_field_mask(tokens, num_wrapping_dims=1)
         # print(word_mask.shape)
         # print(word_mask)
         # sentence_mask = get_text_field_mask(tokens, num_wrapping_dims=1)
@@ -731,7 +731,7 @@ class HierarchicalAttentionRNN2CLPsychPre(Model):
 
         # print(tokens.keys())
         # print(tokens['tokens'].shape)
-        embedded = self._embeddings(tokens, num_wrapping_dims=2)
+        embedded = self._embeddings(tokens, num_wrapping_dims=1)
         embedded_at_word, word_mask_at_word = reshape_for_seq2vec(embedded, word_mask)
         # print(embedded.shape)
         # print(embedded_at_word.shape)
