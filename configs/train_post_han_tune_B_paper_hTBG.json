@@ -1,0 +1,62 @@
+local hidden_size = 50;
+local embedding_size = 200;
+local model_archive_path = "/fs/clip-scratch-new/shing/post_pretrain/model.tar.gz";
+
+{
+   "train_data_path": std.extVar("TRAINING_PATH"),
+   "validation_data_path": std.extVar("VALIDATE_PATH"),
+   "test_data_path": "/fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/expert/task_B_with_post.expert",
+   "dataset_reader": {
+      "lazy": false,
+      "type": "post_clpsych_post_time_reader",
+      "token_indexers": {
+        "tokens": {
+          "type": "single_id",
+          "lowercase_tokens": true
+        }
+      }
+   },
+   "iterator": {
+      "batch_size": 16,
+      "type": "bucket",
+      "sorting_keys": [["tokens", "list_num_tokens"]]
+   },
+   "model": {
+       "type": "2HAN_clpsych",
+       "word_embeddings": {
+           "token_embedders": {
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": embedding_size,
+                    "trainable": false,
+                    "pretrained_file": "(http://nlp.stanford.edu/data/glove.twitter.27B.zip)#glove.twitter.27B.200d.txt"
+                }
+            }
+       },
+       "word_to_sentence": {
+           "_pretrained": {
+                "archive_file": model_archive_path, 
+                "module_path": "_word_to_sentence",
+                "freeze": false
+            }
+       },
+       "sentence_to_doc": {
+           "_pretrained": {
+                "archive_file": model_archive_path, 
+                "module_path": "_sentence_to_doc",
+                "freeze": false
+            }
+       }
+   },
+   "trainer": {
+        "validation_metric": "+macro_fscore",
+        "num_epochs": 100,
+        "optimizer": {
+            "type": "adam",
+            "lr": 0.003
+        },
+        "patience": 30,
+        "cuda_device": 0
+    },
+    "evaluate_on_test": true
+}
