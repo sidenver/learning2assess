@@ -22,9 +22,7 @@ class LRGloveBowEmpathReadability(Model):
                  sentence_to_doc: Seq2VecEncoder,
                  doc_to_user: Seq2VecEncoder,
                  word_embeddings: TextFieldEmbedder,
-                 bow_embeddings: TextFieldEmbedder,
-                 empath_embeddings: Optional[TextFieldEmbedder] = None,
-                 readability_embeddings: Optional[TextFieldEmbedder] = None
+                 bow_embeddings: TextFieldEmbedder
                  ) -> None:
         super().__init__(vocab)
 
@@ -34,12 +32,9 @@ class LRGloveBowEmpathReadability(Model):
         self._doc_to_user = doc_to_user
         self._word_embeddings = word_embeddings
         self._bow_embeddings = bow_embeddings
-        self._empath_embeddings = empath_embeddings
-        self._readability_embeddings = readability_embeddings
         self._classifier_input_dim = self._word_embeddings.get_output_dim() \
-            + self._bow_embeddings.get_output_dim() \
-            + (self._empath_embeddings.get_output_dim() if self._empath_embeddings else 0) \
-            + (self._readability_embeddings.get_output_dim() if self._readability_embeddings else 0)
+            + self._bow_embeddings.get_output_dim() + 194 + 7
+        # TODO add empath & readability
         self._num_labels = vocab.get_vocab_size(namespace="labels")
 
         self._predictor = nn.Linear(self._classifier_input_dim, self._num_labels)
@@ -48,6 +43,8 @@ class LRGloveBowEmpathReadability(Model):
 
     def forward(self,
                 tokens: Dict[str, torch.Tensor],
+                empath: torch.Tensor,
+                readability: torch.Tensor,
                 label: Optional[torch.Tensor] = None,
                 **kwargs) -> Dict[str, torch.Tensor]:
         def reshape_for_seq2vec(vec, mask):
@@ -83,9 +80,13 @@ class LRGloveBowEmpathReadability(Model):
 
         docs = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
-        # print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
+        print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
+        print(empath.shape)
+        print(readability.shape)
 
-        users = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
+        merged_docs_at_doc = torch.cat([docs_at_doc, empath, readability], dim=-1)
+
+        users = self._doc_to_user(merged_docs_at_doc, doc_mask_at_doc)
         # print(users.shape)
 
         prediction = self._predictor(users)

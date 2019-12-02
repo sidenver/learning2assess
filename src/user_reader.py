@@ -6,10 +6,14 @@ from allennlp.data.tokenizers import Token
 from allennlp.data.dataset_readers import DatasetReader
 
 from allennlp.data import Instance
-from allennlp.data.fields import TextField, LabelField, ListField, MetadataField
+from allennlp.data.fields import TextField, LabelField, ListField, MetadataField, ArrayField
 
 import json
 import numpy as np
+
+import torch
+from empath import Empath
+from readability import Readability
 
 
 @DatasetReader.register('user_reader')
@@ -316,6 +320,96 @@ class UserCLPsychPostTimeDatasetReader(UserCLPsychDatasetReader):
                          label: Optional[str] = None) -> Instance:
         user_field = self.tokens_to_user_field(tokens)
         fields = {"tokens": user_field}
+        doc_word_count_list = self.doc_word_counts(tokens)
+        fields["doc_word_counts"] = MetadataField(doc_word_count_list)
+        fields["support"] = MetadataField(support[-self.max_doc:])
+
+        if label:
+            label_field = LabelField(label)
+            fields["label"] = label_field
+            raw_meta_field = MetadataField(label)
+            fields["raw_label"] = raw_meta_field
+
+        fields["meta"] = MetadataField({"user_id": user_id,
+                                        "subreddit": subreddit[-self.max_doc:],
+                                        "post_id": post_id[-self.max_doc:],
+                                        "timestamp": timestamp[-self.max_doc:]})
+
+        return Instance(fields)
+
+    def _read(self, file_path: str) -> Iterator[Instance]:
+        with open(file_path) as f:
+            for line in f:
+                user = json.loads(line.strip())
+
+                yield self.text_to_instance(user["user_id"],
+                                            user['tokens'], user["subreddit"],
+                                            user["post_id"], user["support"],
+                                            user["timestamp"], user["label"])
+
+
+@DatasetReader.register('user_clpsych_feature_reader')
+class UserCLPsychFeatureDatasetReader(UserCLPsychPostTimeDatasetReader):
+    """
+    For pre-sentenized, pre-tokenized json-line SuicideWatch Dataset
+    """
+
+    def __init__(self,
+                 token_indexers: Optional[Dict[str, TokenIndexer]] = None,
+                 max_doc: int = 50,
+                 max_sent: int = 16,
+                 max_word: int = 64,
+                 lazy: bool = False) -> None:
+        super().__init__(token_indexers=token_indexers,
+                         max_doc=max_doc,
+                         max_sent=max_sent,
+                         max_word=max_word,
+                         lazy=lazy)
+        self.empath_lexicon = Empath()
+        self.lexicon_categories = sorted(list(self.empath_lexicon.cats.keys()))
+
+    def tokens_to_empath(self, tokens: List[List[List[str]]]) -> ListField:
+        def doc_to_empath(doc_str) -> ArrayField:
+            results = self.empath_lexicon.analyze(doc_str, normalize=True)
+            return ArrayField(np.array([results[category] for category in self.lexicon_categories]))
+        doc_list = [doc_to_empath(" ".join([word for sentence in doc[:self.max_sent]
+                                            for word in sentence[:self.max_word]]))
+                    for doc in tokens[-self.max_doc:]]
+
+        return ListField(doc_list)
+
+    def tokens_to_readability(self, tokens: List[List[List[str]]]) -> torch.Tensor:
+        def doc_to_readability(doc_str) -> ArrayField:
+            if len(doc_str) == 0:
+                return ArrayField(np.zeros(7))
+            str_to_read = doc_str
+            while len(str_to_read.split()) < 100:
+                str_to_read += " " + doc_str
+            r = Readability(str_to_read)
+            r_scores = [r.flesch_kincaid().score,
+                        r.flesch().score,
+                        r.gunning_fog().score,
+                        r.coleman_liau().score,
+                        r.dale_chall().score,
+                        r.ari().score,
+                        r.linsear_write().score]
+            return ArrayField(np.array(r_scores))
+        doc_list = [doc_to_readability(" ".join([word for sentence in doc[:self.max_sent]
+                                                 for word in sentence[:self.max_word]]))
+                    for doc in tokens[-self.max_doc:]]
+
+        return ListField(doc_list)
+
+    def text_to_instance(self, user_id: int, tokens: List[List[List[str]]],
+                         subreddit: List[str], post_id: List[str],
+                         support: List[List[Any]], timestamp: List[int],
+                         label: Optional[str] = None) -> Instance:
+        user_field = self.tokens_to_user_field(tokens)
+        empath_field = self.tokens_to_empath(tokens)
+        readability_field = self.tokens_to_readability(tokens)
+        fields = {"tokens": user_field,
+                  "empath": empath_field,
+                  "readability": readability_field}
         doc_word_count_list = self.doc_word_counts(tokens)
         fields["doc_word_counts"] = MetadataField(doc_word_count_list)
         fields["support"] = MetadataField(support[-self.max_doc:])
