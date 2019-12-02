@@ -62,21 +62,24 @@ class LRGloveBowEmpathReadability(Model):
         # print(tokens.keys())
         # print(tokens['tokens'].shape)
         _word_embedded = self._word_embeddings(tokens, num_wrapping_dims=2)
-        print(_word_embedded.shape)
-        embedded = _word_embedded
+        # print(_word_embedded.shape)
         # _empath_embedded = self._empath_embeddings(tokens, num_wrapping_dims=2)
         # _readability_embedded = self._readability_embeddings(tokens, num_wrapping_dims=2)
 
-        embedded_at_word, word_mask_at_word = reshape_for_seq2vec(embedded, word_mask)
+        embedded_at_word, word_mask_at_word = reshape_for_seq2vec(_word_embedded, word_mask)
         # print(embedded.shape)
-        print(embedded_at_word.shape)
+        # print(embedded_at_word.shape)
         # print(word_mask_at_word.shape)
         _bow_embedded = self._bow_embeddings(tokens, num_wrapping_dims=2)
-        print(_bow_embedded.shape)
+        # print(_bow_embedded.shape)
 
-        sentences = self._word_to_sentence(embedded_at_word, word_mask_at_word)
-        sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
-        print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
+        embedded_sentences = self._word_to_sentence(embedded_at_word, word_mask_at_word)
+        embedded_sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(embedded_sentences, sentence_mask)
+        _bow_sentences_at_sentence = _bow_embedded.view(embedded_sentences_at_sentence.shape[0],
+                                                        embedded_sentences_at_sentence.shape[1],
+                                                        _bow_embedded.shape[-1])
+        sentences_at_sentence = torch.cat([embedded_sentences_at_sentence, _bow_sentences_at_sentence], dim=-1)
+        # print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
 
         docs = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
