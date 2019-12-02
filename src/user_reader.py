@@ -14,6 +14,7 @@ import numpy as np
 import torch
 from empath import Empath
 from readability import Readability
+from readability.exceptions import ReadabilityException
 
 
 @DatasetReader.register('user_reader')
@@ -383,17 +384,22 @@ class UserCLPsychFeatureDatasetReader(UserCLPsychPostTimeDatasetReader):
             if len(doc_str) < 10:
                 return ArrayField(np.zeros(7))
             str_to_read = doc_str
-            while len(str_to_read.split()) < 150:
-                str_to_read += " " + doc_str
-            r = Readability(str_to_read)
-            r_scores = [r.flesch_kincaid().score,
-                        r.flesch().score,
-                        r.gunning_fog().score,
-                        r.coleman_liau().score,
-                        r.dale_chall().score,
-                        r.ari().score,
-                        r.linsear_write().score]
-            return ArrayField(np.array(r_scores))
+            try:
+                while len(str_to_read.split()) < 150:
+                    str_to_read += " " + doc_str
+                r = Readability(str_to_read)
+                r_scores = [r.flesch_kincaid().score,
+                            r.flesch().score,
+                            r.gunning_fog().score,
+                            r.coleman_liau().score,
+                            r.dale_chall().score,
+                            r.ari().score,
+                            r.linsear_write().score]
+                return ArrayField(np.array(r_scores))
+            except ReadabilityException:
+                print(doc_str)
+                return ArrayField(np.zeros(7))
+
         doc_list = [doc_to_readability(" ".join([word for sentence in doc[:self.max_sent]
                                                  for word in sentence[:self.max_word]]))
                     for doc in tokens[-self.max_doc:]]
