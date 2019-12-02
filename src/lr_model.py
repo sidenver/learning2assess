@@ -80,9 +80,6 @@ class LRGloveBowEmpathReadability(Model):
 
         docs = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
-        print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
-        print(empath.shape)
-        print(readability.shape)
 
         merged_docs_at_doc = torch.cat([docs_at_doc, empath, readability], dim=-1)
 

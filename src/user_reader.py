@@ -371,7 +371,7 @@ class UserCLPsychFeatureDatasetReader(UserCLPsychPostTimeDatasetReader):
 
     def tokens_to_empath(self, tokens: List[List[List[str]]]) -> ListField:
         def doc_to_empath(doc_str) -> ArrayField:
-            results = self.empath_lexicon.analyze(doc_str, normalize=True)
+            results = self.empath_lexicon.analyze(doc_str)
             return ArrayField(np.array([results[category] for category in self.lexicon_categories]))
         doc_list = [doc_to_empath(" ".join([word for sentence in doc[:self.max_sent]
                                             for word in sentence[:self.max_word]]))
@@ -397,7 +397,6 @@ class UserCLPsychFeatureDatasetReader(UserCLPsychPostTimeDatasetReader):
                             r.linsear_write().score]
                 return ArrayField(np.array(r_scores))
             except ReadabilityException:
-                print(doc_str)
                 return ArrayField(np.zeros(7))
 
         doc_list = [doc_to_readability(" ".join([word for sentence in doc[:self.max_sent]
