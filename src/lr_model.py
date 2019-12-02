@@ -48,7 +48,8 @@ class LRGloveBowEmpathReadability(Model):
 
     def forward(self,
                 tokens: Dict[str, torch.Tensor],
-                label: Optional[torch.Tensor] = None) -> Dict[str, torch.Tensor]:
+                label: Optional[torch.Tensor] = None,
+                **kwargs) -> Dict[str, torch.Tensor]:
         def reshape_for_seq2vec(vec, mask):
             reshaped_vec = vec.view(-1, mask.shape[-1], vec.shape[-1])
             reshaped_mask = mask.view(-1, mask.shape[-1])
