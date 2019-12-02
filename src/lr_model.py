@@ -67,7 +67,6 @@ class LRGloveBowEmpathReadability(Model):
         print(_bow_embedded.shape)
         print(_bow_embedded)
         embedded = _bow_embedded
-        break
         #_empath_embedded = self._empath_embeddings(tokens, num_wrapping_dims=2)
         #_readability_embedded = self._readability_embeddings(tokens, num_wrapping_dims=2)
 
