@@ -380,10 +380,10 @@ class UserCLPsychFeatureDatasetReader(UserCLPsychPostTimeDatasetReader):
 
     def tokens_to_readability(self, tokens: List[List[List[str]]]) -> torch.Tensor:
         def doc_to_readability(doc_str) -> ArrayField:
-            if len(doc_str) == 0:
+            if len(doc_str) < 10:
                 return ArrayField(np.zeros(7))
             str_to_read = doc_str
-            while len(str_to_read.split()) < 100:
+            while len(str_to_read.split()) < 150:
                 str_to_read += " " + doc_str
             r = Readability(str_to_read)
             r_scores = [r.flesch_kincaid().score,
