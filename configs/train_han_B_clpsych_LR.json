@@ -7,7 +7,7 @@ local embedding_size = 200;
    //"datasets_for_vocab_creation": ["train"],
    "dataset_reader": {
       "lazy": false,
-      "type": "user_clpsych_post_time_reader",
+      "type": "user_clpsych_feature_reader",
       "token_indexers": {
         "tokens": {
           "type": "single_id",
