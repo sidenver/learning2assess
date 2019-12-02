@@ -65,7 +65,7 @@ local embedding_size = 200;
             "lr": 0.003
         },
         "patience": 20,
-        "cuda_device": -1
+        "cuda_device": 0
     },
     "vocabulary":{
       "min_count":{

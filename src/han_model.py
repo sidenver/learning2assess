@@ -380,6 +380,8 @@ class HierarchicalAttentionRNN2CLPsych(Model):
     def forward(self,
                 tokens: Dict[str, torch.Tensor],
                 label: Optional[torch.Tensor] = None,
+                doc_word_counts: Optional[List[int]] = None,
+                support: Optional[List[List[Any]]] = None,
                 meta: Optional[List[Dict[str, Any]]] = None,
                 **kwargs) -> Dict[str, torch.Tensor]:
         def reshape_for_seq2vec(vec, mask):
@@ -422,12 +424,15 @@ class HierarchicalAttentionRNN2CLPsych(Model):
         prediction = self._predictor(docs)
 
         output = {}
-        output['loss'] = self._loss(prediction, label)
         output['doc_embedding'] = docs
         output['prediction'] = prediction
+        output['doc_word_counts'] = doc_word_counts
+        output['support'] = support
+        output['meta'] = meta
 
         if label is not None:
             output['truth'] = label
+            output['loss'] = self._loss(prediction, label)
             # output['accuracy'] =
 
             self._accuracy(prediction, label)
@@ -640,13 +645,16 @@ class HierarchicalAttentionRNN3CLPsychHierarchicalTimed(HierarchicalAttentionRNN
         prediction = self._predictor(users)
 
         output = {}
-        output['loss'] = self._loss(prediction, label)
         output['user_embedding'] = users
         output['document_attentions'] = document_attentions
+        output['support'] = support
+        output['doc_word_counts'] = doc_word_counts
+        output['meta'] = meta
         output['prediction'] = prediction
 
         if label is not None:
             output['truth'] = label
+            output['loss'] = self._loss(prediction, label)
             # output['accuracy'] =
             a_index = self.vocab.get_token_index('a', namespace='labels')
             b_index = self.vocab.get_token_index('b', namespace='labels')

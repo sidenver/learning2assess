@@ -46,6 +46,10 @@ class UserLRGloveBowEmpathReadability(Model):
                 empath: torch.Tensor,
                 readability: torch.Tensor,
                 label: Optional[torch.Tensor] = None,
+                raw_label: Optional[List[str]] = None,
+                doc_word_counts: Optional[List[List[int]]] = None,
+                support: Optional[List[List[List[Any]]]] = None,
+                meta: Optional[List[Dict[str, Any]]] = None,
                 **kwargs) -> Dict[str, torch.Tensor]:
         def reshape_for_seq2vec(vec, mask):
             reshaped_vec = vec.view(-1, mask.shape[-1], vec.shape[-1])
@@ -89,10 +93,18 @@ class UserLRGloveBowEmpathReadability(Model):
         prediction = self._predictor(users)
 
         output = {}
-        output['loss'] = self._loss(prediction, label)
-        # output['accuracy'] =
+        output['user_embedding'] = users
+        output['support'] = support
+        output['doc_word_counts'] = doc_word_counts
+        output['meta'] = meta
+        output['prediction'] = prediction
 
-        self._accuracy(prediction, label)
+        if label is not None:
+            output['truth'] = label
+            output['loss'] = self._loss(prediction, label)
+            # output['accuracy'] =
+
+            self._accuracy(prediction, label)
 
         return output
 
@@ -134,6 +146,9 @@ class PostLRGloveBowEmpathReadability(Model):
                 empath: torch.Tensor,
                 readability: torch.Tensor,
                 label: Optional[torch.Tensor] = None,
+                doc_word_counts: Optional[List[int]] = None,
+                support: Optional[List[List[Any]]] = None,
+                meta: Optional[List[Dict[str, Any]]] = None,
                 **kwargs) -> Dict[str, torch.Tensor]:
         def reshape_for_seq2vec(vec, mask):
             reshaped_vec = vec.view(-1, mask.shape[-1], vec.shape[-1])
@@ -177,10 +192,18 @@ class PostLRGloveBowEmpathReadability(Model):
         prediction = self._predictor(merged_docs)
 
         output = {}
-        output['loss'] = self._loss(prediction, label)
-        # output['accuracy'] =
+        output['doc_embedding'] = merged_docs
+        output['prediction'] = prediction
+        output['doc_word_counts'] = doc_word_counts
+        output['support'] = support
+        output['meta'] = meta
 
-        self._accuracy(prediction, label)
+        if label is not None:
+            output['truth'] = label
+            output['loss'] = self._loss(prediction, label)
+            # output['accuracy'] =
+
+            self._accuracy(prediction, label)
 
         return output
 
