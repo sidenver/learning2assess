@@ -74,15 +74,15 @@ class LRGloveBowEmpathReadability(Model):
         _bow_embedded = self._bow_embeddings(tokens, num_wrapping_dims=2)
         print(_bow_embedded.shape)
 
-        sentences, _ = self._word_to_sentence(embedded_at_word, word_mask_at_word)
+        sentences = self._word_to_sentence(embedded_at_word, word_mask_at_word)
         sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
         print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
 
-        docs, _ = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
+        docs = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
         # print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
 
-        users, _ = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
+        users = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
         # print(users.shape)
 
         prediction = self._predictor(users)
