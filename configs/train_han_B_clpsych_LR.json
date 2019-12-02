@@ -11,10 +11,6 @@ local embedding_size = 200;
         "tokens": {
           "type": "single_id",
           "lowercase_tokens": true
-        },
-        "tokens_bow": {
-          "type": "bag_of_word_counts",
-          "lowercase_tokens": true
         }
       }
    },
