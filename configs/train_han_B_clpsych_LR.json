@@ -22,9 +22,13 @@ local embedding_size = 200;
    "model": {
        "type": "lr_glove_bow_empath_readability",
        "bow_embeddings": {
-          "type": "bag_of_word_counts",
-          "vocab_namespace": "tokens",
-          "ignore_oov": true
+            "token_embedders": {
+                "tokens": {
+                    "type": "bag_of_word_counts",
+                   "vocab_namespace": "tokens",
+                   "ignore_oov": true
+                }
+            }
        },
        "word_embeddings": {
            "token_embedders": {
