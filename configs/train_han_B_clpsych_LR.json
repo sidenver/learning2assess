@@ -64,6 +64,6 @@ local embedding_size = 200;
             "lr": 0.003
         },
         "patience": 50,
-        "cuda_device": 0
+        "cuda_device": -1
     }
 }

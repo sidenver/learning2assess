@@ -61,14 +61,14 @@ class LRGloveBowEmpathReadability(Model):
         # print(tokens.keys())
         # print(tokens['tokens'].shape)
         _word_embedded = self._word_embeddings(tokens, num_wrapping_dims=2)
-        _bow_embedded = self._bow_embeddings(tokens, num_wrapping_dims=2)
         print(_word_embedded.shape)
         print(_word_embedded)
+        _bow_embedded = self._bow_embeddings(tokens, num_wrapping_dims=2)
         print(_bow_embedded.shape)
         print(_bow_embedded)
         embedded = _bow_embedded
-        #_empath_embedded = self._empath_embeddings(tokens, num_wrapping_dims=2)
-        #_readability_embedded = self._readability_embeddings(tokens, num_wrapping_dims=2)
+        # _empath_embedded = self._empath_embeddings(tokens, num_wrapping_dims=2)
+        # _readability_embedded = self._readability_embeddings(tokens, num_wrapping_dims=2)
 
         embedded_at_word, word_mask_at_word = reshape_for_seq2vec(embedded, word_mask)
         # print(embedded.shape)
