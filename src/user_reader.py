@@ -379,7 +379,7 @@ class UserCLPsychFeatureDatasetReader(UserCLPsychPostTimeDatasetReader):
 
         return ListField(doc_list)
 
-    def tokens_to_readability(self, tokens: List[List[List[str]]]) -> torch.Tensor:
+    def tokens_to_readability(self, tokens: List[List[List[str]]]) -> ListField:
         def doc_to_readability(doc_str) -> ArrayField:
             if len(doc_str) < 10:
                 return ArrayField(np.zeros(7))
@@ -487,6 +487,141 @@ class PostCLPsychPostTimeDatasetReader(UserCLPsychDatasetReader):
                                                          post_id[-self.max_doc:],
                                                          timestamp[-self.max_doc:])):
             fields = {"tokens": post_field}
+            fields["doc_word_counts"] = MetadataField(doc_word_count)
+            fields["support"] = MetadataField(post_support)
+
+            if label:
+                label_field = LabelField(label)
+                fields["label"] = label_field
+                raw_meta_field = MetadataField(label)
+                fields["raw_label"] = raw_meta_field
+
+            fields["meta"] = MetadataField({"user_id": user_id,
+                                            "subreddit": post_subreddit,
+                                            "post_id": post_post_id,
+                                            "timestamp": post_timestamp})
+
+            yield Instance(fields)
+
+    def _read(self, file_path: str) -> Iterator[Instance]:
+        with open(file_path) as f:
+            for line in f:
+                user = json.loads(line.strip())
+
+                for post_intance in self.text_to_instance(user["user_id"],
+                                                          user['tokens'],
+                                                          user["subreddit"],
+                                                          user["post_id"],
+                                                          user["support"],
+                                                          user["timestamp"],
+                                                          user["label"]):
+                    yield post_intance
+
+
+@DatasetReader.register('post_clpsych_feature_reader')
+class PostCLPsychFeatureDatasetReader(UserCLPsychDatasetReader):
+    """
+    For pre-sentenized, pre-tokenized json-line SuicideWatch Dataset
+    """
+
+    def __init__(self,
+                 token_indexers: Optional[Dict[str, TokenIndexer]] = None,
+                 max_doc: int = 50,
+                 max_sent: int = 16,
+                 max_word: int = 64,
+                 lazy: bool = False) -> None:
+        super().__init__(token_indexers=token_indexers,
+                         max_doc=max_doc,
+                         max_sent=max_sent,
+                         max_word=max_word,
+                         lazy=lazy)
+        self.empath_lexicon = Empath()
+        self.lexicon_categories = sorted(list(self.empath_lexicon.cats.keys()))
+
+    def tokens_to_empath(self, tokens: List[List[List[str]]]) -> List[ArrayField]:
+        def doc_to_empath(doc_str) -> ArrayField:
+            results = self.empath_lexicon.analyze(doc_str)
+            return ArrayField(np.array([results[category] for category in self.lexicon_categories]))
+        doc_list = [doc_to_empath(" ".join([word for sentence in doc[:self.max_sent]
+                                            for word in sentence[:self.max_word]]))
+                    for doc in tokens[-self.max_doc:]]
+
+        return doc_list
+
+    def tokens_to_readability(self, tokens: List[List[List[str]]]) -> List[ArrayField]:
+        def doc_to_readability(doc_str) -> ArrayField:
+            if len(doc_str) < 10:
+                return ArrayField(np.zeros(7))
+            str_to_read = doc_str
+            try:
+                while len(str_to_read.split()) < 150:
+                    str_to_read += " " + doc_str
+                r = Readability(str_to_read)
+                r_scores = [r.flesch_kincaid().score,
+                            r.flesch().score,
+                            r.gunning_fog().score,
+                            r.coleman_liau().score,
+                            r.dale_chall().score,
+                            r.ari().score,
+                            r.linsear_write().score]
+                return ArrayField(np.array(r_scores))
+            except ReadabilityException:
+                return ArrayField(np.zeros(7))
+
+        doc_list = [doc_to_readability(" ".join([word for sentence in doc[:self.max_sent]
+                                                 for word in sentence[:self.max_word]]))
+                    for doc in tokens[-self.max_doc:]]
+
+        return doc_list
+
+    def tokens_to_user_field(self, tokens) -> ListField:
+        doc_list = []
+        for doc in tokens[-self.max_doc:]:
+            sent_list = []
+            for sentence in doc[:self.max_sent]:
+                word_list = []
+                for word in sentence[:self.max_word]:
+                    word_list.append(Token(word))
+                sent_list.append(TextField(word_list, self.token_indexers))
+            doc_list.append(ListField(sent_list))
+        return doc_list
+
+    def doc_word_counts(self, tokens: List[List[List[str]]]):
+        doc_word_count_list = []
+        for doc in tokens[-self.max_doc:]:
+            totol_word_count = 0
+            for sentence in doc:
+                totol_word_count += len(sentence)
+            doc_word_count_list.append(totol_word_count)
+
+        return doc_word_count_list
+
+    def text_to_instance(self, user_id: int, tokens: List[List[List[str]]],
+                         subreddit: List[str], post_id: List[str],
+                         support: List[List[Any]], timestamp: List[int],
+                         label: Optional[str] = None) -> Instance:
+        user_field = self.tokens_to_user_field(tokens)
+        empath_fields = self.tokens_to_empath(tokens)
+        readability_fields = self.tokens_to_readability(tokens)
+        doc_word_count_list = self.doc_word_counts(tokens)
+        for doc_index, (post_field,
+                        empath_field,
+                        readability_field,
+                        doc_word_count,
+                        post_support,
+                        post_subreddit,
+                        post_post_id,
+                        post_timestamp) in enumerate(zip(user_field,
+                                                         empath_fields,
+                                                         readability_fields,
+                                                         doc_word_count_list,
+                                                         support[-self.max_doc:],
+                                                         subreddit[-self.max_doc:],
+                                                         post_id[-self.max_doc:],
+                                                         timestamp[-self.max_doc:])):
+            fields = {"tokens": post_field,
+                      "empath": empath_field,
+                      "readability": readability_field}
             fields["doc_word_counts"] = MetadataField(doc_word_count)
             fields["support"] = MetadataField(post_support)
 

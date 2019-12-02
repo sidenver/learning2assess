@@ -7,7 +7,7 @@ local embedding_size = 200;
    //"datasets_for_vocab_creation": ["train"],
    "dataset_reader": {
       "lazy": false,
-      "type": "user_clpsych_feature_reader",
+      "type": "post_clpsych_feature_reader",
       "token_indexers": {
         "tokens": {
           "type": "single_id",
@@ -18,10 +18,10 @@ local embedding_size = 200;
    "iterator": {
       "batch_size": 16,
       "type": "bucket",
-      "sorting_keys": [["tokens", "list_list_num_tokens"]]
+      "sorting_keys": [["tokens", "list_num_tokens"]]
    },
    "model": {
-       "type": "user_lr_glove_bow_empath_readability",
+       "type": "post_lr_glove_bow_empath_readability",
        "bow_embeddings": {
             "token_embedders": {
                 "tokens": {
@@ -50,11 +50,6 @@ local embedding_size = 200;
            "type": "bag_of_embeddings",
            "embedding_dim": embedding_size,
            "averaged": false
-       },
-       "doc_to_user": {
-           "type": "bag_of_embeddings",
-           "embedding_dim": embedding_size,
-           "averaged": true
        }
    },
    "trainer": {
