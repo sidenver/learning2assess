@@ -93,7 +93,7 @@ class UserLRGloveBowEmpathReadability(Model):
         prediction = self._predictor(users)
 
         output = {}
-        output['user_embedding'] = users
+        # output['user_embedding'] = users
         output['support'] = support
         output['doc_word_counts'] = doc_word_counts
         output['meta'] = meta
@@ -192,7 +192,7 @@ class PostLRGloveBowEmpathReadability(Model):
         prediction = self._predictor(merged_docs)
 
         output = {}
-        output['doc_embedding'] = merged_docs
+        # output['doc_embedding'] = merged_docs
         output['prediction'] = prediction
         output['doc_word_counts'] = doc_word_counts
         output['support'] = support
