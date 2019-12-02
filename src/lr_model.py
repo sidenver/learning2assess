@@ -63,22 +63,20 @@ class LRGloveBowEmpathReadability(Model):
         # print(tokens['tokens'].shape)
         _word_embedded = self._word_embeddings(tokens, num_wrapping_dims=2)
         print(_word_embedded.shape)
-        print(_word_embedded)
-        _bow_embedded = self._bow_embeddings(tokens, num_wrapping_dims=2)
-        print(_bow_embedded.shape)
-        print(_bow_embedded)
-        embedded = _bow_embedded
+        embedded = _word_embedded
         # _empath_embedded = self._empath_embeddings(tokens, num_wrapping_dims=2)
         # _readability_embedded = self._readability_embeddings(tokens, num_wrapping_dims=2)
 
         embedded_at_word, word_mask_at_word = reshape_for_seq2vec(embedded, word_mask)
         # print(embedded.shape)
-        # print(embedded_at_word.shape)
+        print(embedded_at_word.shape)
         # print(word_mask_at_word.shape)
+        _bow_embedded = self._bow_embeddings(tokens, num_wrapping_dims=2)
+        print(_bow_embedded.shape)
 
         sentences, _ = self._word_to_sentence(embedded_at_word, word_mask_at_word)
         sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
-        # print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
+        print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
 
         docs, _ = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
