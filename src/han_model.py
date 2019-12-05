@@ -796,6 +796,97 @@ class HierarchicalAttentionRNN3CLPsychPre(Model):
         return {"accuracy": self._accuracy.get_metric(reset)}
 
 
+@Model.register('3HAN_av_clpsych_pretrain')
+class HierarchicalAttentionAverageRNN3CLPsychPre(Model):
+    '''
+    Contains 3 layers Hierachical Attention RNNs
+    '''
+
+    def __init__(self,
+                 vocab: Vocabulary,
+                 word_embeddings: TextFieldEmbedder,
+                 word_to_sentence: Seq2VecEncoder,
+                 sentence_to_doc: Seq2VecEncoder,
+                 doc_to_user: Seq2VecEncoder
+                 ) -> None:
+        super().__init__(vocab)
+
+        self.vocab = vocab
+        self._embeddings = word_embeddings
+        self._word_to_sentence = word_to_sentence
+        self._sentence_to_doc = sentence_to_doc
+        self._doc_to_user = doc_to_user
+        self._classifier_input_dim = self._doc_to_user.get_output_dim()
+        self._num_labels = vocab.get_vocab_size(namespace="labels")
+        print('num_label:', self._num_labels)
+
+        self._predictor_binary = nn.Linear(self._classifier_input_dim, self._num_labels)
+        self._loss = nn.CrossEntropyLoss()
+        self._accuracy = CategoricalAccuracy()
+
+        print(self)
+
+    def forward(self,
+                tokens: Dict[str, torch.Tensor],
+                label: Optional[torch.Tensor] = None,
+                meta: Optional[List[Dict[str, Any]]] = None) -> Dict[str, torch.Tensor]:
+        def reshape_for_seq2vec(vec, mask):
+            reshaped_vec = vec.view(-1, mask.shape[-1], vec.shape[-1])
+            reshaped_mask = mask.view(-1, mask.shape[-1])
+            return reshaped_vec, reshaped_mask
+        # print(tokens.shape)
+        # print(tokens)
+        word_mask = get_text_field_mask(tokens, num_wrapping_dims=2)
+        # print(word_mask.shape)
+        # print(word_mask)
+        # sentence_mask = get_text_field_mask(tokens, num_wrapping_dims=1)
+        sentence_mask = (word_mask.sum(dim=-1) > 0).long()
+        # print(sentence_mask.shape)
+        # print(sentence_mask)
+        # doc_mask = get_text_field_mask(tokens, num_wrapping_dims=0)
+        doc_mask = (sentence_mask.sum(dim=-1) > 0).long()
+        # print(doc_mask.shape)
+        # print(doc_mask)
+
+        # print(tokens.keys())
+        # print(tokens['tokens'].shape)
+        embedded = self._embeddings(tokens, num_wrapping_dims=2)
+        embedded_at_word, word_mask_at_word = reshape_for_seq2vec(embedded, word_mask)
+        # print(embedded.shape)
+        # print(embedded_at_word.shape)
+        # print(word_mask_at_word.shape)
+
+        sentences, _ = self._word_to_sentence(embedded_at_word, word_mask_at_word)
+        sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
+        # print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
+
+        docs, _ = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
+        docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
+        # print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
+
+        users = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
+        # print(users.shape)
+
+        prediction = self._predictor_binary(users)
+
+        output = {}
+        # output['accuracy'] =
+
+        output['user_embedding'] = users
+        output['prediction'] = prediction
+
+        if label is not None:
+            output['loss'] = self._loss(prediction, label)
+            output['truth'] = label
+
+            self._accuracy(prediction, label)
+
+        return output
+
+    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
+        return {"accuracy": self._accuracy.get_metric(reset)}
+
+
 @Model.register('2HAN_clpsych_pretrain')
 class HierarchicalAttentionRNN2CLPsychPre(Model):
     '''
