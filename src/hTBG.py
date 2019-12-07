@@ -327,6 +327,8 @@ class hTBG:
         for prediction, gold_label, relevance_doc_dict, prediction_score_dict in sorted_predictions_with_gold[:-1]:
             p_click = self.p_click_true if gold_label > 0 else self.p_click_false
             expect_word_read = self.calculate_expect_word_read(relevance_doc_dict, prediction_score_dict)
+            if self.verbose:
+                print(expect_word_read)
             time = time_at_k[-1] + self.t_summary + (self.t_alpha * expect_word_read + self.t_beta) * p_click
             time_at_k.append(time)
 
@@ -361,6 +363,8 @@ class hTBG:
         # relevant items will always rank before irrelevant items
         # within relevant items, the shorter time ones rank higher
         # TODO what about graded relevance?
+        if self.verbose:
+            print(user_time)
         sorted_users = sorted(gold_label_dict.keys(),
                               key=lambda user: (gold_label_dict[user], -user_time[user]),
                               reverse=True)
