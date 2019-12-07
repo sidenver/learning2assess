@@ -705,6 +705,140 @@ class HierarchicalAttentionRNN3CLPsychHierarchicalTimed(HierarchicalAttentionRNN
                 **htbg_metrics}
 
 
+@Model.register('3HAN_clpsych_attention_out')
+class HierarchicalAttentionRNN3CLPsychAttentionOut(HierarchicalAttentionRNN3CLPsych):
+    '''
+    Contains 3 layers Hierachical Attention RNNs
+    '''
+
+    def __init__(self,
+                 vocab: Vocabulary,
+                 word_embeddings: TextFieldEmbedder,
+                 word_to_sentence: Seq2VecEncoder,
+                 sentence_to_doc: Seq2VecEncoder,
+                 doc_to_user: Seq2VecEncoder,
+                 ndcg_metric: Metric,
+                 tbg_metric: Metric,
+                 htbg_metrics: Dict[str, Metric],
+                 ) -> None:
+        super().__init__(vocab,
+                         word_embeddings,
+                         word_to_sentence,
+                         sentence_to_doc,
+                         doc_to_user)
+        self._ndcg = ndcg_metric
+        self._tbg_metric = tbg_metric
+        self._htbg_metrics = htbg_metrics
+
+    def forward(self,
+                tokens: Dict[str, torch.Tensor],
+                label: Optional[torch.Tensor] = None,
+                raw_label: Optional[List[str]] = None,
+                doc_word_counts: Optional[List[List[int]]] = None,
+                support: Optional[List[List[List[Any]]]] = None,
+                meta: Optional[List[Dict[str, Any]]] = None) -> Dict[str, torch.Tensor]:
+        def reshape_for_seq2vec(vec, mask):
+            reshaped_vec = vec.view(-1, mask.shape[-1], vec.shape[-1])
+            reshaped_mask = mask.view(-1, mask.shape[-1])
+            return reshaped_vec, reshaped_mask
+        # print(tokens.shape)
+        # print(tokens)
+        word_mask = get_text_field_mask(tokens, num_wrapping_dims=2)
+        # print(word_mask.shape)
+        # print(word_mask)
+        # sentence_mask = get_text_field_mask(tokens, num_wrapping_dims=1)
+        sentence_mask = (word_mask.sum(dim=-1) > 0).long()
+        # print(sentence_mask.shape)
+        # print(sentence_mask)
+        # doc_mask = get_text_field_mask(tokens, num_wrapping_dims=0)
+        doc_mask = (sentence_mask.sum(dim=-1) > 0).long()
+        # print(doc_mask.shape)
+        # print(doc_mask)
+
+        # print(tokens.keys())
+        # print(tokens['tokens'].shape)
+        embedded = self._embeddings(tokens, num_wrapping_dims=2)
+        embedded_at_word, word_mask_at_word = reshape_for_seq2vec(embedded, word_mask)
+        # print(embedded.shape)
+        # print(embedded_at_word.shape)
+        # print(word_mask_at_word.shape)
+
+        sentences, word_attentions = self._word_to_sentence(embedded_at_word, word_mask_at_word)
+        sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
+        # print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
+
+        docs, sentence_attentions = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
+        docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
+        # print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
+
+        users, document_attentions = self._doc_to_user(docs_at_doc, doc_mask_at_doc)
+        # print(users.shape)
+
+        prediction = self._predictor(users)
+
+        output = {}
+        output['user_embedding'] = users
+        output['document_attentions'] = document_attentions
+        output['word_attentions'] = word_attentions
+        output['sentence_attentions'] = sentence_attentions
+        output['support'] = support
+        output['doc_word_counts'] = doc_word_counts
+        output['meta'] = meta
+        output['prediction'] = prediction
+
+        if label is not None:
+            output['truth'] = label
+            output['loss'] = self._loss(prediction, label)
+            # output['accuracy'] =
+            a_index = self.vocab.get_token_index('a', namespace='labels')
+            b_index = self.vocab.get_token_index('b', namespace='labels')
+            c_index = self.vocab.get_token_index('c', namespace='labels')
+            d_index = self.vocab.get_token_index('d', namespace='labels')
+
+            indexes_with_score = [(a_index, 0), (b_index, 2), (c_index, 4), (d_index, 8)]
+
+            normalized = nn.Softmax(dim=-1)
+
+            prediction_probability = normalized(prediction)
+            scores_for_ranking = sum([score * prediction_probability[:, index]
+                                      for index, score in indexes_with_score])
+
+            self._ndcg(scores_for_ranking, raw_label)
+            self._tbg_metric(scores_for_ranking, raw_label, [sum(word_counts) for word_counts in doc_word_counts])
+            for htbg_metric in self._htbg_metrics:
+                self._htbg_metrics[htbg_metric](scores_for_ranking, raw_label,
+                                                doc_word_counts, support,
+                                                document_attentions,
+                                                meta)
+
+            self._accuracy(prediction, label)
+            self._f1(prediction, label)
+            self._f1_micro(prediction, label)
+            self._f1_macro(prediction, label)
+
+        return output
+
+    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
+        f1_scores = {'{}_{}'.format(self.label_index_to_token[index], key): f
+                     for key, val in self._f1.get_metric(reset).items()
+                     for index, f in enumerate(val)}
+        f1_micro = {'micro_' + key: val
+                    for key, val in self._f1_micro.get_metric(reset).items()}
+        f1_macro = {'macro_' + key: val
+                    for key, val in self._f1_macro.get_metric(reset).items()}
+        htbg_metrics = {htbg_type + '_' + key: val
+                        for htbg_type, htbg_metric in self._htbg_metrics.items()
+                        for key, val in htbg_metric.get_metric(reset).items()}
+
+        return {"accuracy": self._accuracy.get_metric(reset),
+                **f1_scores,
+                **f1_micro,
+                **f1_macro,
+                **self._ndcg.get_metric(reset),
+                **self._tbg_metric.get_metric(reset),
+                **htbg_metrics}
+
+
 @Model.register('3HAN_av_clpsych_htbg_time_ndcg')
 class HierarchicalAttentionAverageRNN3CLPsychHierarchicalTimed(HierarchicalAttentionRNN3CLPsych):
     '''
