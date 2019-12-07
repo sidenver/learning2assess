@@ -787,9 +787,8 @@ class HierarchicalAttentionRNN3CLPsychAttentionOut(HierarchicalAttentionRNN3CLPs
         output = {}
         # output['user_embedding'] = users
         output['document_attentions'] = document_attentions
-        
-        output['word_attentions'] = word_attentions
-        output['sentence_attentions'] = sentence_attentions
+        output['word_attentions'] = word_attentions.view(embedded.shape[0], embedded.shape[1], embedded.shape[2], -1)
+        output['sentence_attentions'] = sentence_attentions.view(embedded.shape[0], embedded.shape[1], -1)
         output['support'] = support
         output['doc_word_counts'] = doc_word_counts
         output['meta'] = meta
