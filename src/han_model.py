@@ -631,11 +631,11 @@ class HierarchicalAttentionRNN3CLPsychHierarchicalTimed(HierarchicalAttentionRNN
         # print(embedded_at_word.shape)
         # print(word_mask_at_word.shape)
 
-        sentences, _ = self._word_to_sentence(embedded_at_word, word_mask_at_word)
+        sentences, word_attentions = self._word_to_sentence(embedded_at_word, word_mask_at_word)
         sentences_at_sentence, sentence_mask_at_sentence = reshape_for_seq2vec(sentences, sentence_mask)
         # print(sentences.shape, sentences_at_sentence.shape, sentence_mask_at_sentence.shape)
 
-        docs, _ = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
+        docs, sentence_attentions = self._sentence_to_doc(sentences_at_sentence, sentence_mask_at_sentence)
         docs_at_doc, doc_mask_at_doc = reshape_for_seq2vec(docs, doc_mask)
         # print(docs.shape, docs_at_doc.shape, doc_mask_at_doc.shape)
 
@@ -647,6 +647,8 @@ class HierarchicalAttentionRNN3CLPsychHierarchicalTimed(HierarchicalAttentionRNN
         output = {}
         output['user_embedding'] = users
         output['document_attentions'] = document_attentions
+        output['word_attentions'] = word_attentions
+        output['sentence_attentions'] = sentence_attentions
         output['support'] = support
         output['doc_word_counts'] = doc_word_counts
         output['meta'] = meta
