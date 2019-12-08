@@ -281,7 +281,7 @@ class hTBG:
     def calculate_expect_word_read(self,
                                    relevance_doc_dict: Dict[str, List[float]],
                                    prediction_score_dict: Dict[str, float]
-                                   ) -> Tuple(float, bool):
+                                   ) -> Tuple[float, bool]:
         # assert that the same user has the same set of documents
         assert set(relevance_doc_dict.keys()) == set(prediction_score_dict.keys())
 
