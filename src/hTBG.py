@@ -229,7 +229,7 @@ import json
 from docopt import docopt
 import numpy as np
 from typing import Dict, Optional, List, Union, Any, Tuple
-from itertools import permutations
+# from itertools import permutations
 from pprint import pprint
 
 
@@ -251,6 +251,7 @@ class hTBG:
                  p_save_true: float = 0.77, p_save_false: float = 0.27, t_summary: float = 4.4,
                  t_alpha: float = 0.018, t_beta: float = 7.8,
                  t_half_lives: List[float] = [224., 1800.],
+                 max_docs: int = None,
                  hierarchical: bool = True,
                  verbose: bool = False):
         self.relevance = relevance
@@ -265,6 +266,7 @@ class hTBG:
         self.t_alpha = t_alpha
         self.t_beta = t_beta
         self.t_half_lives = t_half_lives
+        self.max_docs = max_docs
 
     def calculate_time_biased_gain(self, gains: List[float], time_at_k: List[float], t_half_life: float):
         gains = np.array(gains)
@@ -279,24 +281,28 @@ class hTBG:
     def calculate_expect_word_read(self,
                                    relevance_doc_dict: Dict[str, List[float]],
                                    prediction_score_dict: Dict[str, float]
-                                   ) -> float:
+                                   ) -> Tuple(float, bool):
         # assert that the same user has the same set of documents
         assert set(relevance_doc_dict.keys()) == set(prediction_score_dict.keys())
 
+        signal_is_found = False
         word_support_score = [(relevance_doc_dict[doc_id][1],  # lower level cost, or word count
                                relevance_doc_dict[doc_id][0],  # stopping probability
                                prediction_score_dict[doc_id]) for doc_id in relevance_doc_dict]
-        if self.hierarchical:
-            word_support_score = sorted(word_support_score, key=lambda x: x[-1], reverse=True)
 
-            cumulative_skipping_prob = 1
-            expect_word_read = 0
-            for doc_word_count, stopping_prob, score in word_support_score:
-                expect_word_read += doc_word_count * cumulative_skipping_prob
+        word_support_score = sorted(word_support_score, key=lambda x: x[-1], reverse=True)[:self.max_docs]
+
+        cumulative_skipping_prob = 1
+        expect_word_read = 0
+        for doc_word_count, stopping_prob, score in word_support_score:
+            if stopping_prob > 0:
+                signal_is_found = True
+            expect_word_read += doc_word_count * cumulative_skipping_prob
+            if self.hierarchical:
                 cumulative_skipping_prob *= (1 - stopping_prob)
-            return expect_word_read
-        else:
-            return sum([doc_word_count for doc_word_count, _, _ in word_support_score])
+            else:
+                cumulative_skipping_prob = 1
+        return expect_word_read, signal_is_found
 
     def evaluate_query(self,
                        relevance: Dict[str, List[Any]],
@@ -317,22 +323,27 @@ class hTBG:
 
         sorted_predictions_with_gold = sorted(predictions_with_gold, key=lambda x: x[0], reverse=True)
 
-        gains = [self.p_click_true * self.p_save_true if gold_label > 0 else 0.
-                 for prediction, gold_label, relevance_doc_dict, prediction_score_dict
-                 in sorted_predictions_with_gold]
-
+        # gains = [self.p_click_true * self.p_save_true if gold_label > 0 else 0.
+        #          for prediction, gold_label, relevance_doc_dict, prediction_score_dict
+        #          in sorted_predictions_with_gold]
+        gains = []
         time_at_k = []
         # time at k is the time needed to reach rank k, thus the time to reach rank 1 is always 0
         time_at_k.append(0.)
-        for prediction, gold_label, relevance_doc_dict, prediction_score_dict in sorted_predictions_with_gold[:-1]:
+        for prediction, gold_label, relevance_doc_dict, prediction_score_dict in sorted_predictions_with_gold:
             p_click = self.p_click_true if gold_label > 0 else self.p_click_false
-            expect_word_read = self.calculate_expect_word_read(relevance_doc_dict, prediction_score_dict)
+            expect_word_read, signal_is_found = self.calculate_expect_word_read(relevance_doc_dict,
+                                                                                prediction_score_dict)
+            gain = self.p_click_true * self.p_save_true if (gold_label > 0 and signal_is_found) else 0.
+            gains.append(gain)
             if self.verbose:
                 print(expect_word_read)
             time = time_at_k[-1] + self.t_summary + (self.t_alpha * expect_word_read + self.t_beta) * p_click
             time_at_k.append(time)
 
-        return {_t_half_life: self.calculate_time_biased_gain(gains, time_at_k, _t_half_life)
+        ignore_last_time_at_k = time_at_k[:-1]
+
+        return {_t_half_life: self.calculate_time_biased_gain(gains, ignore_last_time_at_k, _t_half_life)
                 for _t_half_life in self.t_half_lives}
 
     def best_possible_htbg(self, relevance: Dict[str, List[Any]]) -> Dict[float, float]:
@@ -356,7 +367,7 @@ class hTBG:
                                      for doc_id, word_stopprob in cost_stopping_prob.items()
                                      if doc_id in cost_non_zero_stopping_doc_id}
             prediction_score_dict.update({doc_id: -np.inf for doc_id in cost_zero_stopping_doc_id})
-            expect_word_read = self.calculate_expect_word_read(relevance_doc_dict, prediction_score_dict)
+            expect_word_read, _ = self.calculate_expect_word_read(relevance_doc_dict, prediction_score_dict)
 
             user_time[user] = expect_word_read
 
