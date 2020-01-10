@@ -313,7 +313,7 @@ class HierarchicalAttentionRNN3CLPsych(Model):
 
         output = {}
         output['loss'] = self._loss(prediction, label)
-        output['user_embedding'] = users
+        # output['user_embedding'] = users
         output['prediction'] = prediction
 
         if label is not None:
