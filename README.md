@@ -59,7 +59,7 @@ test: /fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/crowd/test/postpro
 
 Here is an example to demonstrate the file format (in the dataset, this json will be flatten into a single line):
 
-```python
+```json
 {
     "user_id": 849302,
     "label": "control",
@@ -103,7 +103,7 @@ The file format is identical to the pretraining format, except in this case, all
 
 *Optional: skip step 4 and 5 if you have access to a trained model*
 
-In the commend line (on a GPU-enabled machine, with `nlp` environment activated), type the following (but change PRETRAIN_MODEL_PATH accordingly)
+In the commend line (on a GPU-enabled machine, with `nlp` environment activated), type the following (but change `PRETRAIN_MODEL_PATH` accordingly)
 
 ```sh
 cd PATH/TO/learning2assess/..
@@ -116,7 +116,7 @@ allennlp train -f --include-package learning2assess -s $PRETRAIN_MODEL_PATH lear
 
 ## Step 5. Model Training on the Crowdsource Dataset
 
-In the commend line (on a GPU-enabled machine, with `nlp` environment activated), type the following (but change MODEL_PATH accordingly)
+In the commend line (on a GPU-enabled machine, with `nlp` environment activated), type the following (but change `MODEL_PATH` accordingly)
 
 ```sh
 cd PATH/TO/learning2assess/..
@@ -125,7 +125,7 @@ echo "training tuned model"
 allennlp train -f --include-package learning2assess -s $MODEL_PATH learning2assess/configs/tune_A_clpsych_ensemble.json
 ```
 
-After you finished training, you can go to the MODEL_PATH directory to see model performance on train and dev set. You can also visualize MODEL_PATH with `tensorboard`.
+After you finished training, you can go to the `MODEL_PATH` directory to see model performance on train and dev set. You can also visualize MODEL_PATH with `tensorboard`.
 
 ## Step 6. Generating Prediction
 
@@ -137,6 +137,6 @@ export TEST_DATA="/fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/expert
 allennlp predict ${MODEL_PATH}/model.tar.gz $TEST_DATA --include-package learning2assess --predictor han_clpsych_predictor --output-file task_A.expert.prediction
 ```
 
-If you don't have a GPU enable machine, add `--cuda-device=-1` to `allennlp predict`. See `allennlp predict -h` for all options.
+If you don't have a GPU-enabled machine, add `--cuda-device=-1` to `allennlp predict`. See `allennlp predict -h` for all options.
 
 This will output `task_A.expert.prediction` in json line format.
