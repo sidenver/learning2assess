@@ -57,7 +57,7 @@ dev: /fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/crowd/train/postpro
 test: /fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/crowd/test/postprocess_posts_test_full.jsonl
 ```
 
-Here is an example to demonstrate the file format:
+Here is an example to demonstrate the file format (in the dataset, this json will be flatten into a single line):
 
 ```python
 {
