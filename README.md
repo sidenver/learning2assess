@@ -8,34 +8,32 @@ This readme describes how to train 3HAN for Task A of CLPsych.
 
 See https://docs.conda.io/en/latest/miniconda.html for download and installation of miniconda3.
 
-For Linux user, install miniconda3 by running
+For Linux user, after downloading Miniconda3-latest-Linux-x86_64.sh, install miniconda3 by running
 
-```
+```sh
 bash Miniconda3-latest-Linux-x86_64.sh
 ```
 
-and then follow the instruction
+### Create a new environment named `nlp` with python 3.7
 
-### Create a new environment named nlp under python 3.7
-
-```
-conda create --name nlp  python=3.7
+```sh
+conda create --name nlp python=3.7
 conda activate nlp
 ```
 
-The environment name (nlp) can be arbitrary, but you need to activate it every time you wish to run this experiment.
+The environment name (`nlp`) can be arbitrary, but you need to activate it every time you wish to run this experiment.
 
 ## Step 1. Install AllenNLP
 
 Assuming you have already activated the environment, run
 
-```
+```sh
 pip install allennlp
 ```
 
 ## Step 2. Install Other Packages with conda
 
-```
+```sh
 conda install -c anaconda docopt
 pip install pytrec_eval
 pip install empath
@@ -43,7 +41,7 @@ pip install py-readability-metrics
 python -m nltk.downloader punkt
 ```
 
-Most of the libraries above are not required to run the demo experiment, simply comment out the `import` in `src` directory if you run into installation problem.
+Most of the libraries above are not required to run the demo experiment, simply comment out the corresponding `import` in `src` directory if you run into installation problems.
 
 ## Step 3. Prepare Data into the Right Format
 
@@ -61,18 +59,18 @@ test: /fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/crowd/test/postpro
 
 Here is an example to demonstrate the file format:
 
-```
+```python
 {
-    "user_id": 849302, 
-    "label": "control", 
+    "user_id": 849302,
+    "label": "control",
     "tokens": [
                 [
-                    ["This", "is", "the", "first", "sentence"], 
-                    ["the","second", "sentence"]
+                    ["This", "is", "the", "first", "sentence"],
+                    ["the", "second", "sentence"]
                 ],
                 [
-                    ["The", "first", "sentence", "of", "the", "second", "document"], 
-                    ["2nd","sentence", "of", "the", "2nd", "doc"], 
+                    ["The", "first", "sentence", "of", "the", "second", "document"],
+                    ["2nd", "sentence", "of", "the", "2nd", "doc"],
                     ["third"]
                 ]
               ],
@@ -101,13 +99,13 @@ test: /fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/expert/cleaned_tas
 
 The file format is identical to the pretraining format, except in this case, all subreddit will be from SuicideWatch (since this is task A), and the labels is either "a", "b", "c", or "d" (No, Low, Moderate, Severe).
 
-## Step 4. Pretraining on the Crowdsource Dataset
+## Step 4. Pretraining on the Weak Supervision Dataset
 
-Optional: skip step 4 and 5 if you have access to a trained model
+*Optional: skip step 4 and 5 if you have access to a trained model*
 
 In the commend line (on a GPU-enabled machine, with `nlp` environment activated), type the following (but change PRETRAIN_MODEL_PATH accordingly)
 
-```
+```sh
 cd PATH/TO/learning2assess/..
 export RANDOM_SEED=$RANDOM
 echo RANDOM_SEED
@@ -116,11 +114,11 @@ echo "training pretrain model"
 allennlp train -f --include-package learning2assess -s $PRETRAIN_MODEL_PATH learning2assess/configs/pretrain_clpsych_ensemble.json
 ```
 
-## Step 5. Model Training
+## Step 5. Model Training on the Crowdsource Dataset
 
 In the commend line (on a GPU-enabled machine, with `nlp` environment activated), type the following (but change MODEL_PATH accordingly)
 
-```
+```sh
 cd PATH/TO/learning2assess/..
 export MODEL_PATH="YOUR/PATH/TO/STORE/MODEL/"
 echo "training tuned model"
@@ -133,10 +131,12 @@ After you finished training, you can go to the MODEL_PATH directory to see model
 
 After you finished training (or have access to a trained model), you can do inference on the test data:
 
-```
+```sh
 cd PATH/TO/learning2assess/..
 export TEST_DATA="/fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/expert/cleaned_task_A.expert"
 allennlp predict ${MODEL_PATH}/model.tar.gz $TEST_DATA --include-package learning2assess --predictor han_clpsych_predictor --output-file task_A.expert.prediction
 ```
+
+If you don't have a GPU enable machine, add `--cuda-device=-1` to `allennlp predict`. See `allennlp predict -h` for all options.
 
 This will output `task_A.expert.prediction` in json line format.
