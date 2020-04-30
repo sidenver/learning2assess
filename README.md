@@ -1,20 +1,20 @@
 # A Prioritization Model for Suicide Risk Assessment
 
-This readme describes how to train 3HAN for Task A of CLPsych.
+This README describes how to train 3HAN for Task A of CLPsych.
 
 ## Step 0. Create Virtual Environment with Miniconda3
 
 ### Download Miniconda3
 
-See https://docs.conda.io/en/latest/miniconda.html for download and installation of miniconda3.
+See https://docs.conda.io/en/latest/miniconda.html for download and installation of `miniconda3`.
 
-For Linux user, after downloading Miniconda3-latest-Linux-x86_64.sh, install miniconda3 by running
+For Linux user, after downloading `Miniconda3-latest-Linux-x86_64.sh`, install `miniconda3` by running
 
 ```sh
 bash Miniconda3-latest-Linux-x86_64.sh
 ```
 
-### Create a new environment named `nlp` with python 3.7
+### Create a new environment named `nlp` with `python 3.7`
 
 ```sh
 conda create --name nlp python=3.7
@@ -23,7 +23,7 @@ conda activate nlp
 
 The environment name (`nlp`) can be arbitrary, but you need to activate it every time you wish to run this experiment.
 
-## Step 1. Install AllenNLP
+## Step 1. Install `AllenNLP`
 
 Assuming you have already activated the environment, run
 
