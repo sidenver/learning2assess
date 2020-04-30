@@ -103,15 +103,16 @@ The file format is identical to the pretraining format, except in this case, all
 
 *Optional: skip step 4 and 5 if you have access to a trained model*
 
-In the commend line (on a GPU-enabled machine, with `nlp` environment activated), type the following (but change `PRETRAIN_MODEL_PATH` accordingly)
+In the commend line (on a GPU-enabled machine, with `nlp` environment activated), type the following (but change `PRETRAIN_MODEL_PATH` and your path to the dataset accordingly)
 
 ```sh
 cd PATH/TO/learning2assess/..
 export RANDOM_SEED=$RANDOM
-echo RANDOM_SEED
+export PRETRAIN_TRAIN_DATA_PATH="/fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/crowd/train/postprocess_posts_full_train.jsonl"
+export PRETRAIN_DEV_DATA_PATH="/fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/crowd/train/postprocess_posts_full_dev.jsonl"
 export PRETRAIN_MODEL_PATH="YOUR/PATH/TO/STORE/PRETRAIN/MODEL/"
 echo "training pretrain model"
-allennlp train -f --include-package learning2assess -s $PRETRAIN_MODEL_PATH learning2assess/configs/pretrain_clpsych_ensemble.json
+allennlp train -f --include-package learning2assess -s $PRETRAIN_MODEL_PATH learning2assess/configs/pretrain_clpsych.json
 ```
 
 ## Step 5. Model Training on the Crowdsource Dataset
@@ -121,8 +122,10 @@ In the commend line (on a GPU-enabled machine, with `nlp` environment activated)
 ```sh
 cd PATH/TO/learning2assess/..
 export MODEL_PATH="YOUR/PATH/TO/STORE/MODEL/"
+export TRAIN_DATA_PATH="/fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/crowd/train/task_A.train"
+export DEV_DATA_PATH="/fs/clip-psych/shing/umd_reddit_suicidewatch_dataset_v2/crowd/test/task_A.test"
 echo "training tuned model"
-allennlp train -f --include-package learning2assess -s $MODEL_PATH learning2assess/configs/tune_A_clpsych_ensemble.json
+allennlp train -f --include-package learning2assess -s $MODEL_PATH learning2assess/configs/tune_A_clpsych.json
 ```
 
 After you finished training, you can go to the `MODEL_PATH` directory to see model performance on train and dev set. You can also visualize MODEL_PATH with `tensorboard`.

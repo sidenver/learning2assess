@@ -1,0 +1,84 @@
+local hidden_size = 50;
+local embedding_size = 200;
+
+{
+   "train_data_path": std.extVar("PRETRAIN_TRAIN_DATA_PATH"),
+   "validation_data_path" : std.extVar("PRETRAIN_DEV_DATA_PATH"),
+   "dataset_reader": {
+      "lazy": false,
+      "type": "user_clpsych_reader",
+      "token_indexers": {
+        "tokens": {
+          "type": "single_id",
+          "lowercase_tokens": true
+        }
+      }
+   },
+   "iterator": {
+      "batch_size": 4,
+      "type": "bucket",
+      "sorting_keys": [["tokens", "list_list_num_tokens"]]
+   },
+   "model": {
+       "type": "3HAN_clpsych_pretrain",
+       "word_embeddings": {
+            "token_embedders": {
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": embedding_size,
+                    "trainable": false,
+                    "pretrained_file": "(http://nlp.stanford.edu/data/glove.twitter.27B.zip)#glove.twitter.27B.200d.txt"
+                }
+            }
+       },
+       "word_to_sentence": {
+           "type": "attention_rnn",
+           "encoder":{
+               "type": "gru",
+               "input_size": embedding_size,
+               "hidden_size": hidden_size,
+               "bidirectional": true
+           },
+           "attention":{
+               "type": "dot_product"
+           }
+       },
+       "sentence_to_doc": {
+           "type": "attention_rnn",
+           "encoder":{
+               "type": "gru",
+               "input_size": hidden_size*2,
+               "hidden_size": hidden_size,
+               "bidirectional": true
+           },
+           "attention":{
+               "type": "dot_product"
+           }
+       },
+       "doc_to_user": {
+           "type": "attention_rnn",
+           "encoder":{
+               "type": "gru",
+               "input_size": hidden_size*2,
+               "hidden_size": hidden_size,
+               "bidirectional": true
+           },
+           "attention":{
+               "type": "dot_product"
+           }
+       }
+   },
+   "trainer": {
+        "num_epochs": 8,
+        "optimizer": {
+            "type": "adam",
+            "lr": 0.003
+        },
+        "patience": 3,
+        "cuda_device": 0,
+        "num_serialized_models_to_keep": 5
+    },
+   "random_seed": std.extVar("RANDOM_SEED"),
+   "numpy_seed": std.extVar("RANDOM_SEED"),
+   "pytorch_seed": std.extVar("RANDOM_SEED")
+}
